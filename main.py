@@ -1,35 +1,62 @@
 import pygame
+from enum import Enum
+
+from utils import *
+from movement import *
 
 pygame.init()
 
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 800
+config = {}
+SCREEN_WIDTH, SCREEN_HEIGHT  = 800, 800
+GRID_WIDTH, GRID_HEIGHT = 10, 10
+config['SCREEN_WIDTH'], config['SCREEN_HEIGHT'] = SCREEN_WIDTH, SCREEN_HEIGHT
+config['GRID_WIDTH'], config['GRID_HEIGHT'] = GRID_WIDTH, GRID_HEIGHT
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+clock = pygame.time.Clock()
 
-player1 = pygame.Rect((300, 250, 50, 50))
+pygame.display.set_caption('SnakeRL')
+
+
+SQUARE_WIDTH, SQUARE_HEIGHT = SCREEN_WIDTH/GRID_WIDTH, SCREEN_HEIGHT/GRID_HEIGHT
+
+class Square(Enum):
+    EMPTY = 0
+    PLAYER1 = 1
+    PLAYER2 = 2
+    TOMATO = 3
+
+grid = [[Square.EMPTY] * GRID_WIDTH for _ in range(GRID_HEIGHT)]
+grid[4][2] = Square.PLAYER1
+grid[4][1] = Square.PLAYER1
+grid[4][6] = Square.PLAYER2
+grid[4][7] = Square.PLAYER2
+grid[4][4] = Square.TOMATO
 
 run = True
 while run:
+    key = pygame.key.get_pressed()
+    grid = handle_movement(grid, key)
 
     screen.fill((0, 0, 0))
 
-    pygame.draw.rect(screen, (255, 0, 0), player1)
-
-    key = pygame.key.get_pressed()
-    if key[pygame.K_a]:
-        player1.move_ip(-1, 0)
-    elif key[pygame.K_d]:
-        player1.move_ip(1, 0)
-    elif key[pygame.K_w]:
-        player1.move_ip(0, -1)
-    elif key[pygame.K_s]:
-        player1.move_ip(0, 1)
+    # Outputs grid to screen
+    for row in range(len(grid)):
+        for col in range(len(grid[0])):
+            x, y = grid_to_screen(col, row, config)
+            if grid[row][col] == Square.PLAYER1:
+                pygame.draw.rect(screen, (0, 255, 0), (x, y, SQUARE_WIDTH, SQUARE_HEIGHT))
+            elif grid[row][col] == Square.PLAYER2:
+                pygame.draw.rect(screen, (0, 0, 255), (x, y, SQUARE_WIDTH, SQUARE_HEIGHT))
+            elif grid[row][col] == Square.TOMATO:
+                pygame.draw.rect(screen, (255, 0, 0), (x, y, SQUARE_WIDTH, SQUARE_HEIGHT))
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
     
     pygame.display.update()
+
+    clock.tick(60)
 
 pygame.quit()
