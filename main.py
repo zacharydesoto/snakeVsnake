@@ -16,6 +16,8 @@ SQUARE_WIDTH, SQUARE_HEIGHT = SCREEN_WIDTH/GRID_WIDTH, SCREEN_HEIGHT/GRID_HEIGHT
 config['SCREEN_WIDTH'], config['SCREEN_HEIGHT'] = SCREEN_WIDTH, SCREEN_HEIGHT
 config['GRID_WIDTH'], config['GRID_HEIGHT'] = GRID_WIDTH, GRID_HEIGHT
 config['MARGIN'] = MARGIN
+FRAMERATE = 60
+TICKS_PER_S = 5
 
 screen = pygame.display.set_mode((SCREEN_WIDTH+2*MARGIN, SCREEN_HEIGHT+2*MARGIN))
 clock = pygame.time.Clock()
@@ -45,15 +47,25 @@ head2_dir = Direction.LEFT
 
 game_state = (grid, snake1, head1_dir, snake2, head2_dir)
 
+count = 1
+input1, input2 = Direction.RIGHT, Direction.LEFT
+prev = defaultdict(bool)
+
 run = True
 while run:
     key = pygame.key.get_pressed()
 
-    # Update game state based on player input
-    game_state = handle_movement(game_state, key, config)
-    grid, snake1, head1_dir, snake2, head2_dir = game_state
-    if snake1 is None and snake2 is None:
-        run = False
+    # Handle input 60 times a second
+    if count < FRAMERATE // TICKS_PER_S:
+        input1, input2, prev = handle_input(key, prev, input1, input2)
+        count += 1
+    else:
+        # Update game state based on player input
+        count = 1
+        game_state = handle_movement(game_state, input1, input2, config)
+        grid, snake1, head1_dir, snake2, head2_dir = game_state
+        if snake1 is None and snake2 is None:
+            run = False
 
     # Clear old output of screen
     screen.fill((0, 0, 0))
@@ -87,7 +99,7 @@ while run:
     pygame.display.update()
 
     # Sets frame rate
-    clock.tick(10)
+    clock.tick(FRAMERATE)
 
 font = pygame.font.SysFont('ubuntusans', 100)
 text_surface = font.render('Jonk Peralta', False, (25, 136, 191))
