@@ -28,9 +28,48 @@ def add_tomato(grid, config):
             grid[row][col] = Square.TOMATO
             break
 
-def handle_movement(game_state, key, config):
-    grid, snake1, head1_dir, snake2, head2_dir, game_end = game_state
+def check_ob_collisions(grid, snake, head_dir, config):
+        if snake is None:
+            return grid, None
+        
+        # Calculate new head position
+        head_pos = snake[0]
+        new_head_pos = tuple(a + b for a, b in zip(head_pos, head_dir.value))  # Element-wise addition
 
+        # Check for out of bounds
+        out_bounds = new_head_pos[0] < 0 or new_head_pos[0] >= config['GRID_HEIGHT'] or new_head_pos[1] < 0 or new_head_pos[1] >= config['GRID_WIDTH']
+        if out_bounds:
+            return grid, None
+        
+        # Check for collision
+        new_square = get_square(grid, new_head_pos)
+        snake_crashed = new_square in [Square.PLAYER1, Square.PLAYER2]
+        if snake_crashed:
+            return grid, None
+        
+        return (grid, snake)
+
+def update_snake(grid, snake, head_dir, square):
+        if snake is None:
+            return grid, None, False
+
+        head_pos = snake[0]
+        new_head_pos = tuple(a + b for a, b in zip(head_pos, head_dir.value))  # Element-wise addition
+
+        # Check for eating tomatos
+        new_square = get_square(grid, new_head_pos)
+        snake_ate = new_square == Square.TOMATO
+        if not snake_ate:  # Shrink tail unless snake ate a tomato
+            tail_pos = snake.pop()
+            set_square(grid, tail_pos, Square.EMPTY)
+        
+        # Grow in correct direction
+        set_square(grid, new_head_pos, square)
+        snake.appendleft(new_head_pos)
+
+        return grid, snake, snake_ate
+
+def handle_input(key, head1_dir, head2_dir):
     # Get direction input from keyboard, default to going straight
     if key[pygame.K_a]:
         input1 = Direction.LEFT
@@ -43,17 +82,24 @@ def handle_movement(game_state, key, config):
     else:
         input1 = head1_dir
     
-    if key[pygame.K_UP]:
-        input2 = Direction.UP
+    if key[pygame.K_LEFT]:
+        input2 = Direction.LEFT
     elif key[pygame.K_DOWN]:
         input2 = Direction.DOWN
     elif key[pygame.K_RIGHT]:
         input2 = Direction.RIGHT
-    elif key[pygame.K_LEFT]:
-        input2 = Direction.LEFT
+    elif key[pygame.K_UP]:
+        input2 = Direction.UP
     else:
         input2 = head2_dir
+    
+    return input1, input2
 
+def handle_movement(game_state, key, config):
+    grid, snake1, head1_dir, snake2, head2_dir = game_state
+
+    input1, input2 = handle_input(key, head1_dir, head2_dir)
+    
     def check_perpendicular_directions(dir1, dir2):
         return (dir1 in [Direction.LEFT, Direction.RIGHT]) != (dir2 in [Direction.LEFT, Direction.RIGHT])
     
@@ -63,52 +109,18 @@ def handle_movement(game_state, key, config):
     if check_perpendicular_directions(head2_dir, input2):
         head2_dir = input2
 
-    # Calculate new head position for each snake
-    head1_pos = snake1[0]
-    head2_pos = snake2[0]
-    new_head1_pos = tuple(a + b for a, b in zip(head1_pos, head1_dir.value))  # Element-wise addition
-    new_head2_pos = tuple(a + b for a, b in zip(head2_pos, head2_dir.value))
-
-    # Check for out of bounds
-    snake1_out_bounds = new_head1_pos[0] < 0 or new_head1_pos[0] >= config['GRID_HEIGHT'] or new_head1_pos[1] < 0 or new_head1_pos[1] >= config['GRID_WIDTH']
-    snake2_out_bounds = new_head2_pos[0] < 0 or new_head2_pos[0] >= config['GRID_HEIGHT'] or new_head2_pos[1] < 0 or new_head2_pos[1] >= config['GRID_WIDTH']
-    if snake1_out_bounds or snake2_out_bounds:
-        print('Snake out of bounds')
-        return (grid, snake1, head1_dir, snake2, head2_dir, True)
-
-    # Check for eating tomatos
-    new_square1 = get_square(grid, new_head1_pos)
-    new_square2 = get_square(grid, new_head2_pos)
-    snake1_ate = new_square1 == Square.TOMATO
-    snake2_ate = new_square2 == Square.TOMATO
-
-    # Check for collision
-    snake1_crashed = new_square1 in [Square.PLAYER1, Square.PLAYER2]
-    snake2_crashed = new_square2 in [Square.PLAYER1, Square.PLAYER2]
-    if snake1_crashed or snake2_crashed:
-        print('Snake crashed')
-        return (grid, snake1, head1_dir, snake2, head2_dir, True)
-
-    # Shrink tail unless snake ate a tomato
-    if not snake1_ate:
-        tail1_pos = snake1.pop()
-        set_square(grid, tail1_pos, Square.EMPTY)
-    if not snake2_ate:
-        tail2_pos = snake2.pop()
-        set_square(grid, tail2_pos, Square.EMPTY)
-
-    # Grow snakes in correct direction
-    set_square(grid, new_head1_pos, Square.PLAYER1)
-    set_square(grid, new_head2_pos, Square.PLAYER2)
-    snake1.appendleft(new_head1_pos)
-    snake2.appendleft(new_head2_pos)
+    grid, snake1 = check_ob_collisions(grid, snake1, head1_dir, config)
+    grid, snake2 = check_ob_collisions(grid, snake2, head2_dir, config)
+        
+    grid, snake1, snake1_ate = update_snake(grid, snake1, head1_dir, Square.PLAYER1)
+    grid, snake2, snake2_ate = update_snake(grid, snake2, head2_dir, Square.PLAYER2)
 
     # Add new tomatos if any were eaten
     if snake1_ate:
         add_tomato(grid, config)
     if snake2_ate:
         add_tomato(grid, config)
-    
+
     # Return updated game state
-    game_state = (grid, snake1, head1_dir, snake2, head2_dir, False)
+    game_state = (grid, snake1, head1_dir, snake2, head2_dir)
     return game_state

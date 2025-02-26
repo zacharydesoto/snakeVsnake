@@ -21,6 +21,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH+2*MARGIN, SCREEN_HEIGHT+2*MARGIN)
 clock = pygame.time.Clock()
 
 pygame.display.set_caption('SnakeRL')
+pygame.font.init()
 
 # Initialize grid and snakes
 grid = [[Square.EMPTY] * GRID_WIDTH for _ in range(GRID_HEIGHT)]
@@ -30,6 +31,9 @@ grid[5][15] = Square.PLAYER2
 grid[5][14] = Square.PLAYER2
 grid[6][4] = Square.TOMATO
 grid[0][1] = Square.TOMATO
+grid[8][6] = Square.TOMATO
+grid[17][2] = Square.TOMATO
+grid[16][18] = Square.TOMATO
 
 snake1, snake2 = deque(), deque()
 snake1.appendleft((4, 1))
@@ -39,7 +43,7 @@ snake2.appendleft((5, 14))
 head1_dir = Direction.RIGHT
 head2_dir = Direction.LEFT
 
-game_state = (grid, snake1, head1_dir, snake2, head2_dir, False)
+game_state = (grid, snake1, head1_dir, snake2, head2_dir)
 
 run = True
 while run:
@@ -47,8 +51,8 @@ while run:
 
     # Update game state based on player input
     game_state = handle_movement(game_state, key, config)
-    grid, snake1, head1_dir, snake2, head2_dir, game_end = game_state
-    if game_end:
+    grid, snake1, head1_dir, snake2, head2_dir = game_state
+    if snake1 is None and snake2 is None:
         run = False
 
     # Clear old output of screen
@@ -83,7 +87,12 @@ while run:
     pygame.display.update()
 
     # Sets frame rate
-    clock.tick(3)
+    clock.tick(10)
+
+font = pygame.font.SysFont('ubuntusans', 100)
+text_surface = font.render('Jonk Peralta', False, (25, 136, 191))
+screen.blit(text_surface, (150, 350))
+pygame.display.update()
 
 pygame.time.wait(2000)
 pygame.quit()
