@@ -7,9 +7,10 @@ from movement import *
 
 pygame.init()
 
+# Set up variables for screen and grid
 config = {}
 SCREEN_WIDTH, SCREEN_HEIGHT  = 800, 800  # Make sure screen width and height are multiples of grid width and height
-GRID_WIDTH, GRID_HEIGHT = 10, 10
+GRID_WIDTH, GRID_HEIGHT = 20, 20
 MARGIN = 10
 SQUARE_WIDTH, SQUARE_HEIGHT = SCREEN_WIDTH/GRID_WIDTH, SCREEN_HEIGHT/GRID_HEIGHT
 config['SCREEN_WIDTH'], config['SCREEN_HEIGHT'] = SCREEN_WIDTH, SCREEN_HEIGHT
@@ -21,19 +22,20 @@ clock = pygame.time.Clock()
 
 pygame.display.set_caption('SnakeRL')
 
+# Initialize grid and snakes
 grid = [[Square.EMPTY] * GRID_WIDTH for _ in range(GRID_HEIGHT)]
 grid[4][2] = Square.PLAYER1
 grid[4][1] = Square.PLAYER1
-grid[4][6] = Square.PLAYER2
-grid[4][7] = Square.PLAYER2
-grid[4][4] = Square.TOMATO
+grid[5][15] = Square.PLAYER2
+grid[5][14] = Square.PLAYER2
+grid[6][4] = Square.TOMATO
 grid[0][1] = Square.TOMATO
 
 snake1, snake2 = deque(), deque()
-snake1.append((4, 2))
-snake1.append((4, 1))
-snake2.append((4, 6))
-snake2.append((4, 7))
+snake1.appendleft((4, 1))
+snake1.appendleft((4, 2))
+snake2.appendleft((5, 15))
+snake2.appendleft((5, 14))
 head1_dir = Direction.RIGHT
 head2_dir = Direction.LEFT
 
@@ -43,11 +45,13 @@ run = True
 while run:
     key = pygame.key.get_pressed()
 
+    # Update game state based on player input
     game_state = handle_movement(game_state, key, config)
     grid, snake1, head1_dir, snake2, head2_dir, game_end = game_state
     if game_end:
         run = False
 
+    # Clear old output of screen
     screen.fill((0, 0, 0))
 
     # Outputs grid to screen
@@ -61,12 +65,16 @@ while run:
             elif grid[row][col] == Square.TOMATO:
                 pygame.draw.rect(screen, (255, 0, 0), (x, y, SQUARE_WIDTH, SQUARE_HEIGHT))
 
+    # Event handler, currently just for closing game
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
     
+    # Refreshes display
     pygame.display.update()
 
-    clock.tick(1)
+    # Sets frame rate
+    clock.tick(3)
 
+pygame.time.wait(2000)
 pygame.quit()
