@@ -40,16 +40,25 @@ while run:
 
     screen.fill((0, 0, 0))
 
+    RED = (255, 0, 0)
+    BLUE1 = (0, 0, 255)
+    BLUE2 = (0, 100, 255)
+    GREEN1 = (1, 135, 8)
+    GREEN2 = (0, 255, 0)
+    MARGIN = 10
+
     # Outputs grid to screen
     for row in range(len(grid)):
         for col in range(len(grid[0])):
             x, y = grid_to_screen(col, row, config)
             if grid[row][col] == Square.PLAYER1:
-                pygame.draw.rect(screen, (0, 255, 0), (x, y, SQUARE_WIDTH, SQUARE_HEIGHT))
+                pygame.draw.rect(screen, GREEN1, (x, y, SQUARE_WIDTH, SQUARE_HEIGHT))
+                pygame.draw.rect(screen, GREEN2, (x+MARGIN, y+MARGIN, SQUARE_WIDTH-2*MARGIN, SQUARE_HEIGHT-2*MARGIN))
             elif grid[row][col] == Square.PLAYER2:
-                pygame.draw.rect(screen, (0, 0, 255), (x, y, SQUARE_WIDTH, SQUARE_HEIGHT))
+                pygame.draw.rect(screen, BLUE1, (x, y, SQUARE_WIDTH, SQUARE_HEIGHT))
+                pygame.draw.rect(screen, BLUE2, (x+MARGIN, y+MARGIN, SQUARE_WIDTH-2*MARGIN, SQUARE_HEIGHT-2*MARGIN))
             elif grid[row][col] == Square.TOMATO:
-                pygame.draw.rect(screen, (255, 0, 0), (x, y, SQUARE_WIDTH, SQUARE_HEIGHT))
+                pygame.draw.rect(screen, RED, (x, y, SQUARE_WIDTH, SQUARE_HEIGHT))
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
