@@ -8,7 +8,6 @@ class Direction(Enum):
     UP = (-1, 0)
     RIGHT = (0, 1)
     DOWN = (1, 0)
-    NONE = (0, 0)
 
 class Square(Enum):
     EMPTY = 0
@@ -152,9 +151,9 @@ def handle_movement(game_state, input1, input2, config):
         return (dir1 in [Direction.LEFT, Direction.RIGHT]) != (dir2 in [Direction.LEFT, Direction.RIGHT])
     
     # Handle snake turning
-    if check_perpendicular_directions(head1_dir, input1) and input1 != Direction.NONE:
+    if check_perpendicular_directions(head1_dir, input1):
         head1_dir = input1
-    if check_perpendicular_directions(head2_dir, input2) and input2 != Direction.NONE:
+    if check_perpendicular_directions(head2_dir, input2):
         head2_dir = input2
 
     grid, snake1 = check_ob_collisions(grid, snake1, head1_dir, config)
