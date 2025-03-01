@@ -12,14 +12,17 @@ config = {}
 SCREEN_WIDTH, SCREEN_HEIGHT  = 800, 800  # Make sure screen width and height are multiples of grid width and height
 GRID_WIDTH, GRID_HEIGHT = 20, 20
 MARGIN = 10
+TOP_MARGIN = 100
+BORDER_WIDTH = 10
 SQUARE_WIDTH, SQUARE_HEIGHT = SCREEN_WIDTH/GRID_WIDTH, SCREEN_HEIGHT/GRID_HEIGHT
 config['SCREEN_WIDTH'], config['SCREEN_HEIGHT'] = SCREEN_WIDTH, SCREEN_HEIGHT
 config['GRID_WIDTH'], config['GRID_HEIGHT'] = GRID_WIDTH, GRID_HEIGHT
 config['MARGIN'] = MARGIN
-FRAMERATE = 60
+config['TOP_MARGIN'] = TOP_MARGIN
+FRAMERATE = 120
 TICKS_PER_S = 5
 
-screen = pygame.display.set_mode((SCREEN_WIDTH+2*MARGIN, SCREEN_HEIGHT+2*MARGIN))
+screen = pygame.display.set_mode((SCREEN_WIDTH+2*MARGIN, SCREEN_HEIGHT+2*MARGIN + TOP_MARGIN))
 clock = pygame.time.Clock()
 
 pygame.display.set_caption('SnakeRL')
@@ -44,8 +47,10 @@ snake2.appendleft((5, 15))
 snake2.appendleft((5, 14))
 head1_dir = Direction.RIGHT
 head2_dir = Direction.LEFT
+snake1_length = 2
+snake2_length = 2
 
-game_state = (grid, snake1, head1_dir, snake2, head2_dir)
+game_state = (grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length)
 
 count = 1
 input1, input2 = Direction.RIGHT, Direction.LEFT
@@ -63,8 +68,10 @@ while run:
         # Update game state based on player input
         count = 1
         game_state = handle_movement(game_state, input1, input2, config)
-        grid, snake1, head1_dir, snake2, head2_dir = game_state
+        grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length = game_state
         if snake1 is None and snake2 is None:
+            run = False
+        if (snake1 is None and snake1_length < snake2_length) or (snake2 is None and snake1_length > snake2_length):
             run = False
 
     # Clear old output of screen
@@ -75,7 +82,11 @@ while run:
     BLUE2 = (0, 100, 255)
     GREEN1 = (1, 135, 8)
     GREEN2 = (0, 255, 0)
-    MARGIN = 10
+    WHITE = (255, 255, 255)
+    BLACK = (0, 0, 0)
+
+    pygame.draw.rect(screen, WHITE, (MARGIN - BORDER_WIDTH/2, MARGIN + TOP_MARGIN - BORDER_WIDTH/2, SCREEN_WIDTH + BORDER_WIDTH, SCREEN_HEIGHT + BORDER_WIDTH))
+    pygame.draw.rect(screen, BLACK, (MARGIN, MARGIN + TOP_MARGIN, SCREEN_WIDTH, SCREEN_HEIGHT))
 
     # Outputs grid to screen
     for row in range(len(grid)):
@@ -90,6 +101,10 @@ while run:
             elif grid[row][col] == Square.TOMATO:
                 pygame.draw.rect(screen, RED, (x, y, SQUARE_WIDTH, SQUARE_HEIGHT))
 
+    length_font = pygame.font.SysFont('ubuntusans', 50)
+    text_surface = length_font.render(f'Green Snake: {snake1_length}     Blue Snake: {snake2_length}', False, (25, 136, 191))
+    screen.blit(text_surface, (40, 0))
+
     # Event handler, currently just for closing game
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -101,10 +116,17 @@ while run:
     # Sets frame rate
     clock.tick(FRAMERATE)
 
-font = pygame.font.SysFont('ubuntusans', 100)
-text_surface = font.render('Jonk Peralta', False, (25, 136, 191))
-screen.blit(text_surface, (150, 350))
+if snake1_length > snake2_length:
+    end_text = "Green Snake Wins!"
+elif snake2_length > snake1_length:
+    end_text = "Blue Snake Wins!"
+else:
+    end_text = "It's a Tie!"
+
+length_font = pygame.font.SysFont('ubuntusans', 75)
+text_surface = length_font.render(end_text, False, WHITE)
+screen.blit(text_surface, (200, 450))
 pygame.display.update()
 
-pygame.time.wait(2000)
+pygame.time.wait(3000)
 pygame.quit()

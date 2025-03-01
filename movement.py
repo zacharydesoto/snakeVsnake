@@ -145,7 +145,7 @@ def handle_input(key, prev, input1, input2):
     return input1, input2, prev
 
 def handle_movement(game_state, input1, input2, config):
-    grid, snake1, head1_dir, snake2, head2_dir = game_state
+    grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length = game_state
     
     def check_perpendicular_directions(dir1, dir2):
         return (dir1 in [Direction.LEFT, Direction.RIGHT]) != (dir2 in [Direction.LEFT, Direction.RIGHT])
@@ -165,9 +165,11 @@ def handle_movement(game_state, input1, input2, config):
     # Add new tomatos if any were eaten
     if snake1_ate:
         add_tomato(grid, config)
+        snake1_length += 1
     if snake2_ate:
         add_tomato(grid, config)
+        snake2_length += 1
 
     # Return updated game state
-    game_state = (grid, snake1, head1_dir, snake2, head2_dir)
+    game_state = (grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length)
     return game_state
