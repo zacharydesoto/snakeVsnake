@@ -47,6 +47,7 @@ class SnakeEnvironment:
         tomatoes.append((10, 10))
         tomatoes.append((18, 2))
         tomatoes.append((2, 16))
+        self.tomatoes = tomatoes
         for coord in tomatoes:
             row = coord[0]
             col = coord[1]
@@ -57,7 +58,8 @@ class SnakeEnvironment:
     
     def step(self, input1, input2):
         old_snake1_length = self.snake1_length
-        self.grid, self.snake1, self.head1_dir, self.snake1_length, self.snake2, self.head2_dir, self.snake2_length = handle_movement(game_state=self.get_game_state(), input1=input1, input2=input2, config=self.config)
+        self.grid, self.snake1, self.head1_dir, self.snake1_length, self.snake2, self.head2_dir, self.snake2_length, tomatoes = handle_movement(game_state=self.get_game_state(), input1=input1, input2=input2, config=self.config)
+        self.tomatoes = tomatoes
 
         terminated = False
         if self.snake1 is None and self.snake2 is None:
@@ -87,7 +89,7 @@ class SnakeEnvironment:
     def get_game_state(self):
         return (self.grid, self.snake1, self.head1_dir, self.snake1_length, self.snake2, self.head2_dir, self.snake2_length)
     
-    def get_network_state(self, is_snake1):
+    def get_network_state(self, is_snake1=True):
         snake1 = np.arr(self.snake1)
         snake1_padding = self.snake_arr_size - snake1.shape[0]
         if snake1_padding > 0:
@@ -99,6 +101,8 @@ class SnakeEnvironment:
             snake2 = np.pad(snake2, (0, snake2_padding), mode='constant', constant_values=0)
 
         if is_snake1:
-            return 
+            return np.concatenate((snake1, snake2, self.tomatoes))
+        else:
+            return np.concatenate((snake2, snake1, self.tomatoes))
 
     

@@ -28,6 +28,7 @@ def add_tomato(grid, config):
         if grid[row][col] == Square.EMPTY:
             grid[row][col] = Square.TOMATO
             break
+    return (row, col)
 
 def check_ob_collisions(grid, snake, head_dir, config):
     if snake is None:
@@ -145,7 +146,7 @@ def handle_input(key, prev, input1, input2):
     return input1, input2, prev
 
 def handle_movement(game_state, input1, input2, config):
-    grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length = game_state
+    grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length, tomatoes = game_state
     
     def check_perpendicular_directions(dir1, dir2):
         return (dir1 in [Direction.LEFT, Direction.RIGHT]) != (dir2 in [Direction.LEFT, Direction.RIGHT])
@@ -169,12 +170,16 @@ def handle_movement(game_state, input1, input2, config):
 
     # Add new tomatos if any were eaten
     if snake1_ate:
-        add_tomato(grid, config)
+        tomatoes.remove(head1)
+        tomato_pos = add_tomato(grid, config)
+        tomatoes.append(tomato_pos)
         snake1_length += 1
     if snake2_ate:
-        add_tomato(grid, config)
+        tomatoes.remove(head2)
+        tomato_pos = add_tomato(grid, config)
+        tomatoes.append(tomato_pos)
         snake2_length += 1
 
     # Return updated game state
-    game_state = (grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length)
+    game_state = (grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length, tomatoes)
     return game_state

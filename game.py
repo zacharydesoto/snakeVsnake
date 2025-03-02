@@ -42,6 +42,8 @@ def two_player_game():
     grid[2][18] = Square.TOMATO
     grid[16][2] = Square.TOMATO
 
+    tomatoes = [(2, 2), (16, 16), (10, 10), (2, 18), (16, 2)]
+
     snake1, snake2 = deque(), deque()
     snake1.append((1, 1))
     snake1.append((1, 0))
@@ -53,7 +55,7 @@ def two_player_game():
     snake1_length = 2
     snake2_length = 2
 
-    game_state = (grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length)
+    game_state = (grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length, tomatoes)
 
     count = 1
     input1, input2 = Direction.RIGHT, Direction.LEFT
@@ -71,7 +73,7 @@ def two_player_game():
             # Update game state based on player input
             count = 1
             game_state = handle_movement(game_state, input1, input2, config)
-            grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length = game_state
+            grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length, _ = game_state
             if snake1 is None and snake2 is None:
                 run = False
             if (snake1 is None and snake1_length < snake2_length) or (snake2 is None and snake1_length > snake2_length):

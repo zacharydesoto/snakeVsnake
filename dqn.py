@@ -59,7 +59,7 @@ class SnakeDQL():
             np array: Rewards earned each episode
         '''
         state = env.reset()
-        num_input_params = env.snake_arr_size
+        num_input_params = env.get_network_state().shape[0]
         num_actions = len(env.actions)
 
         epsilon = 1
