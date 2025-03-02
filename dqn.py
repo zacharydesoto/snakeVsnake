@@ -46,7 +46,18 @@ class SnakeDQL():
         self.loss_fn = nn.MSELoss()
         self.optimizer = None
 
-    def train(self, episodes, env):
+    def train(self, episodes, env, policy_save_path, policy_load_path=None):
+        '''Trains a policy DQN given an environment.
+    
+        Args:
+            episodes (int): Number of episodes to train for.
+            env (SnakeEnvironment): Environment for the agent to interact with.
+            policy_save_path (string): File path to save the policy DQN to.
+            policy_load_path (string): File path to load a previous policy DQN from.
+        
+        Returns:
+            np array: Rewards earned each episode
+        '''
         state = env.reset()
         num_input_params = len(state)
         num_actions = len(env.actions)
@@ -55,6 +66,8 @@ class SnakeDQL():
         memory = ReplayMemory(self.replay_memory_size)
 
         policy_dqn = DQN(num_input_params, self.num_hidden_nodes, num_actions)
+        if policy_load_path != None:
+            policy_dqn.load_state_dict(torch.load(policy_load_path))
         target_dqn = DQN(num_input_params, self.num_hidden_nodes, num_actions)
 
         target_dqn.load_state_dict(policy_dqn.state_dict())
@@ -87,6 +100,7 @@ class SnakeDQL():
 
             if i % 100 == 0:
                 print(f'Epoch {i} Rewards: {episode_reward}')
+                torch.save(policy_dqn.state_dict(), policy_save_path)
             
             if len(memory) > self.mini_batch_size:
                 mini_batch = memory.sample(self.mini_batch_size)
@@ -97,13 +111,14 @@ class SnakeDQL():
 
                 if step_count > self.network_sync_rate:
                     target_dqn.load_state_dict(policy_dqn.state_dict())
-                    step_count = 0
-            
-            torch.save(policy_dqn.state_dict(), 'model.pth')
+                    step_count = 0            
 
             plt.plot(rewards_per_episode)
+
+            return rewards_per_episode
         
     def optimize(self, mini_batch, policy_dqn, target_dqn):
+        '''Optimizes the policy DQN given a batch from the experience replay buffer.'''
 
         current_q_list = []
         target_q_list = []
