@@ -16,8 +16,6 @@ class SnakeEnvironment:
         self.snake2_length = 0
 
         self.config = config
-        # Hard coded - starts with snake lengths of 2
-        self.reset(2, 2, config)
 
         self.actions = {0:'LEFT', 1:'STRAIGHT', 2:'RIGHT'}
         self.move_counter = 0
@@ -26,7 +24,10 @@ class SnakeEnvironment:
         num_cells = config['GRID_WIDTH'] * config['GRID_HEIGHT']
         self.snake_arr_size = num_cells // 2 + 1
 
-    def reset(self, snake1_length, snake2_length):
+        # Hard coded - starts with snake lengths of 2
+        self.reset(2, 2)
+
+    def reset(self, snake1_length=2, snake2_length=2):
         snake1, snake2 = deque(), deque()
         grid = [[Square.EMPTY] * self.config['GRID_WIDTH'] for _ in range(self.config['GRID_HEIGHT'])] # coordinates are (y,x)
         
@@ -83,26 +84,25 @@ class SnakeEnvironment:
 
         return (self.get_network_state, reward, terminated, truncated)
         
-        
-        
     
     def get_game_state(self):
         return (self.grid, self.snake1, self.head1_dir, self.snake1_length, self.snake2, self.head2_dir, self.snake2_length)
     
     def get_network_state(self, is_snake1=True):
-        snake1 = np.arr(self.snake1)
+        snake1 = np.array(self.snake1)
         snake1_padding = self.snake_arr_size - snake1.shape[0]
         if snake1_padding > 0:
             snake1 = np.pad(snake1, (0, snake1_padding), mode='constant', constant_values=0)
 
-        snake2 = np.arr(self.snake2)
+        snake2 = np.array(self.snake2)
         snake2_padding = self.snake_arr_size - snake2.shape[0]
         if snake2_padding > 0:
             snake2 = np.pad(snake2, (0, snake2_padding), mode='constant', constant_values=0)
 
+        tomatoes = np.array(self.tomatoes)
         if is_snake1:
-            return np.concatenate((snake1, snake2, self.tomatoes))
+            return np.concatenate((snake1.flatten(), snake2.flatten(), tomatoes.flatten()))
         else:
-            return np.concatenate((snake2, snake1, self.tomatoes))
+            return np.concatenate((snake2.flatten(), snake1.flatten(), tomatoes.flatten()))
 
     

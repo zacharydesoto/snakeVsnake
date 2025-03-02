@@ -83,7 +83,7 @@ class SnakeDQL():
             episode_reward = 0
 
             while not terminated and not truncated:
-                if random.random < epsilon:  # Choose randomly
+                if random.random() < epsilon:  # Choose randomly
                     action = random.choice(env.actions)
                 else:
                     with torch.no_grad():
