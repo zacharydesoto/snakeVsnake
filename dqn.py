@@ -4,6 +4,7 @@ from torch import nn
 import torch.nn.functional as F
 from collections import deque
 import random
+import matplotlib.pyplot as plt
 
 
 class DQN(nn.module):
@@ -65,16 +66,42 @@ class SnakeDQL():
         step_count = 0
 
         for i in range(episodes):
-            terminated = False
+            terminated, truncated = False, False
+            episode_reward = 0
 
-            while not terminated:
+            while not terminated and not truncated:
                 if random.random < epsilon:  # Choose randomly
                     action = random.choice(env.actions)
                 else:
                     with torch.no_grad():
                         action = env.actions[policyDQN(state).argmax()]
                 
-                new_state, reward, terminated = env.step(action)
+                new_state, reward, terminated, truncated = env.step(action)
+                episode_reward += reward
 
                 memory.append((state, action, new_state, reward, terminated))
+
+                step_count += 1
+            
+            rewards_per_episode[i] = episode_reward
+
+            if i % 100 == 0:
+                print(f'Epoch {i} Rewards: {episode_reward}')
+            
+            if len(memory) > self.mini_batch_size:
+                mini_batch = memory.sample(self.mini_batch_size)
+                self.optimize(mini_batch, policyDQN, targetDQN)
+
+                # Decay epsilon
+                epsilon = epsilon - 1/episodes
+
+                if step_count > self.network_sync_rate:
+                    targetDQN.load_state_dict(policyDQN.state_dict())
+                    step_count = 0
+            
+            torch.save(policyDQN.state_dict(), 'model.pth')
+
+            plt.plot(rewards_per_episode)
+        
+
 
