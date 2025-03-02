@@ -31,7 +31,7 @@ def add_tomato(grid, config):
 
 def check_ob_collisions(grid, snake, head_dir, config):
     if snake is None:
-        return grid, None
+        return grid, None, None
     
     # Calculate new head position
     head_pos = snake[0]
@@ -162,6 +162,7 @@ def handle_movement(game_state, input1, input2, config):
     if head1 is not None and head2 is not None and head1 == head2:
         snake1 = None
         snake2 = None
+        grid[head1[0]][head1[1]] = Square.PLAYER1
         
     grid, snake1, snake1_ate = update_snake(grid, snake1, head1_dir, Square.PLAYER1)
     grid, snake2, snake2_ate = update_snake(grid, snake2, head2_dir, Square.PLAYER2)
