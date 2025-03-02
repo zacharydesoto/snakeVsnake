@@ -21,7 +21,7 @@ def two_player_game():
     config['GRID_WIDTH'], config['GRID_HEIGHT'] = GRID_WIDTH, GRID_HEIGHT
     config['MARGIN'] = MARGIN
     config['TOP_MARGIN'] = TOP_MARGIN
-    FRAMERATE = 120
+    FRAMERATE = 60
     TICKS_PER_S = 5
 
     screen = pygame.display.set_mode((SCREEN_WIDTH+2*MARGIN, SCREEN_HEIGHT+2*MARGIN + TOP_MARGIN))
