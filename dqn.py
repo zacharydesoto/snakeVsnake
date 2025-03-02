@@ -54,13 +54,13 @@ class SnakeDQL():
         epsilon = 1
         memory = ReplayMemory(self.replay_memory_size)
 
-        policyDQN = DQN(num_input_params, self.num_hidden_nodes, num_actions)
-        targetDQN = DQN(num_input_params, self.num_hidden_nodes, num_actions)
+        policy_dqn = DQN(num_input_params, self.num_hidden_nodes, num_actions)
+        target_dqn = DQN(num_input_params, self.num_hidden_nodes, num_actions)
 
-        targetDQN.load_state_dict(policyDQN.state_dict())
+        target_dqn.load_state_dict(policy_dqn.state_dict())
 
         self.optimizer = torch.optim.AdamW(
-            policyDQN.parameters(), lr=self.learning_rate)
+            policy_dqn.parameters(), lr=self.learning_rate)
         rewards_per_episode = np.zeros(episodes)
 
         step_count = 0
@@ -74,7 +74,7 @@ class SnakeDQL():
                     action = random.choice(env.actions)
                 else:
                     with torch.no_grad():
-                        action = env.actions[policyDQN(state).argmax()]
+                        action = policy_dqn(state).argmax()
                 
                 new_state, reward, terminated, truncated = env.step(action)
                 episode_reward += reward
@@ -90,18 +90,45 @@ class SnakeDQL():
             
             if len(memory) > self.mini_batch_size:
                 mini_batch = memory.sample(self.mini_batch_size)
-                self.optimize(mini_batch, policyDQN, targetDQN)
+                self.optimize(mini_batch, policy_dqn, target_dqn)
 
                 # Decay epsilon
                 epsilon = epsilon - 1/episodes
 
                 if step_count > self.network_sync_rate:
-                    targetDQN.load_state_dict(policyDQN.state_dict())
+                    target_dqn.load_state_dict(policy_dqn.state_dict())
                     step_count = 0
             
-            torch.save(policyDQN.state_dict(), 'model.pth')
+            torch.save(policy_dqn.state_dict(), 'model.pth')
 
             plt.plot(rewards_per_episode)
         
+    def optimize(self, mini_batch, policy_dqn, target_dqn):
+
+        current_q_list = []
+        target_q_list = []
+
+        for state, action, new_state, reward, terminated in mini_batch:
+            if terminated:
+                target = torch.tensor([reward])
+            else:
+                target = torch.tensor(
+                    reward + self.discount_factor * target_dqn(new_state).max()
+                )
+
+            loss = self.loss_fn(target, target_dqn(state))
+
+            current_q = policy_dqn(state)
+            current_q_list.append(current_q)
+
+            target_q = target_dqn(state)
+            target_q[action] = target
+            target_q_list.append(target_q)
+        
+        loss = self.loss_fn(torch.stack(current_q_list), torch.stack(target_q_list))
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
 
