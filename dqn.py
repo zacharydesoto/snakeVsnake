@@ -7,7 +7,7 @@ import random
 import matplotlib.pyplot as plt
 
 
-class DQN(nn.module):
+class DQN(nn.Module):
     def __init__(self, in_states, h1_nodes, out_actions):
         super().__init__()
 
@@ -59,7 +59,7 @@ class SnakeDQL():
             np array: Rewards earned each episode
         '''
         state = env.reset()
-        num_input_params = len(state)
+        num_input_params = env.snake_arr_size
         num_actions = len(env.actions)
 
         epsilon = 1
@@ -94,6 +94,7 @@ class SnakeDQL():
 
                 memory.append((state, action, new_state, reward, terminated))
 
+                state = new_state
                 step_count += 1
             
             rewards_per_episode[i] = episode_reward

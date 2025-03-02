@@ -1,6 +1,7 @@
 import pygame
 from collections import deque
 from movement import Direction, Square, handle_movement
+import numpy as np
 
 
 class SnakeEnvironment:
@@ -22,9 +23,12 @@ class SnakeEnvironment:
         self.move_counter = 0
         self.truncate_limit = 50000
 
-    def reset(self, snake1_length, snake2_length, config):
+        num_cells = config['GRID_WIDTH'] * config['GRID_HEIGHT']
+        self.snake_arr_size = num_cells // 2 + 1
+
+    def reset(self, snake1_length, snake2_length):
         snake1, snake2 = deque(), deque()
-        grid = [[Square.EMPTY] * config['GRID_WIDTH'] for _ in range(config['GRID_HEIGHT'])] # coordinates are (y,x)
+        grid = [[Square.EMPTY] * self.config['GRID_WIDTH'] for _ in range(self.config['GRID_HEIGHT'])] # coordinates are (y,x)
         
         for i in range(1, snake1_length+1):
             snake1.appendleft((4,i))
@@ -49,33 +53,52 @@ class SnakeEnvironment:
             grid[row][col] = Square.TOMATO
 
         self.grid, self.snake1, self.head1_dir, self.snake1_length, self.snake2, self.head2, self.snake2_length = grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length
-        return self.get_state()
+        return self.get_network_state()
     
-    def step(self, game_state, input1, input2, config):
-        self.grid, self.snake1, self.head1_dir, self.snake1_length, self.snake2, self.head2_dir, self.snake2_length = handle_movement(game_state=game_state, input1=input1, input2=input2, config=config)
+    def step(self, input1, input2):
+        old_snake1_length = self.snake1_length
+        self.grid, self.snake1, self.head1_dir, self.snake1_length, self.snake2, self.head2_dir, self.snake2_length = handle_movement(game_state=self.get_game_state(), input1=input1, input2=input2, config=self.config)
 
-        new_state = self.get_state()
-
-        # FIXME: how to handle reward? 
-        reward = 0
-
-        terminated = True
+        terminated = False
         if self.snake1 is None and self.snake2 is None:
-            terminated = False
+            terminated = True
         if (self.snake1 is None and self.snake1_length < self.snake2_length) or (self.snake2 is None and self.snake1_length > self.snake2_length):
-            terminated = False
+            terminated = True
         
-        truncated = False
         self.counter += 1
-        if self.counter >= self.move_counter:
-            truncated = True
+        truncated = self.counter >= self.move_counter
 
-        return (new_state, reward, terminated, truncated)
+        # FIXME: reward handled only for snake 1 right now 
+        reward = 0
+        if terminated:
+            reward += 100 if self.snake1_length > self.snake2_length else -100
+        
+        # if snake2 and not self.snake2:  # Reward for killing snake 2
+        #     reward += 50
+
+        if self.snake1_length > old_snake1_length:  # New length is greater than old length, meaning snake ate a tomato
+            reward += 1
+
+        return (self.get_network_state, reward, terminated, truncated)
         
         
         
     
-    def get_state(self):
+    def get_game_state(self):
         return (self.grid, self.snake1, self.head1_dir, self.snake1_length, self.snake2, self.head2_dir, self.snake2_length)
+    
+    def get_network_state(self, is_snake1):
+        snake1 = np.arr(self.snake1)
+        snake1_padding = self.snake_arr_size - snake1.shape[0]
+        if snake1_padding > 0:
+            snake1 = np.pad(snake1, (0, snake1_padding), mode='constant', constant_values=0)
+
+        snake2 = np.arr(self.snake2)
+        snake2_padding = self.snake_arr_size - snake2.shape[0]
+        if snake2_padding > 0:
+            snake2 = np.pad(snake2, (0, snake2_padding), mode='constant', constant_values=0)
+
+        if is_snake1:
+            return 
 
     
