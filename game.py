@@ -32,21 +32,22 @@ def two_player_game():
 
     # Initialize grid and snakes
     grid = [[Square.EMPTY] * GRID_WIDTH for _ in range(GRID_HEIGHT)]
-    grid[4][2] = Square.PLAYER1
-    grid[4][1] = Square.PLAYER1
-    grid[5][15] = Square.PLAYER2
-    grid[5][14] = Square.PLAYER2
-    grid[6][4] = Square.TOMATO
-    grid[0][1] = Square.TOMATO
-    grid[8][6] = Square.TOMATO
-    grid[17][2] = Square.TOMATO
-    grid[16][18] = Square.TOMATO
+    grid[1][1] = Square.PLAYER1
+    grid[1][0] = Square.PLAYER1
+    grid[17][18] = Square.PLAYER2
+    grid[17][19] = Square.PLAYER2
+    grid[2][2] = Square.TOMATO
+    grid[16][16] = Square.TOMATO
+    grid[10][10] = Square.TOMATO
+    grid[2][18] = Square.TOMATO
+    grid[16][2] = Square.TOMATO
 
     snake1, snake2 = deque(), deque()
-    snake1.appendleft((4, 1))
-    snake1.appendleft((4, 2))
-    snake2.appendleft((5, 15))
-    snake2.appendleft((5, 14))
+    snake1.append((1, 1))
+    snake1.append((1, 0))
+    snake2.append((17, 18))
+    snake2.append((17, 19))
+
     head1_dir = Direction.RIGHT
     head2_dir = Direction.LEFT
     snake1_length = 2

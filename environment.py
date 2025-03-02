@@ -30,23 +30,23 @@ class SnakeEnvironment:
         snake1, snake2 = deque(), deque()
         grid = [[Square.EMPTY] * self.config['GRID_WIDTH'] for _ in range(self.config['GRID_HEIGHT'])] # coordinates are (y,x)
         
-        for i in range(1, snake1_length+1):
-            snake1.appendleft((4,i))
-            grid[4][i] = Square.PLAYER1
+        for i in range(0, snake1_length):
+            snake1.append((1,i))
+            grid[1][i] = Square.PLAYER1
         
-        for j in range(15, 15 - snake2_length, -1):
-            snake2.appendleft((5, j))
-            grid[5][j] = Square.PLAYER2
+        for j in range(19, 19 - snake2_length, -1):
+            snake2.appendleft((17, j))
+            grid[17][j] = Square.PLAYER2
 
         head1_dir = Direction.RIGHT
         head2_dir = Direction.LEFT
 
         tomatoes = []
-        tomatoes.append((6,4))
-        tomatoes.append((0,1))
-        tomatoes.append((8,6))
-        tomatoes.append((17,2))
-        tomatoes.append((16,18))
+        tomatoes.append((2, 2))
+        tomatoes.append((16, 16))
+        tomatoes.append((10, 10))
+        tomatoes.append((18, 2))
+        tomatoes.append((2, 16))
         for coord in tomatoes:
             row = coord[0]
             col = coord[1]
