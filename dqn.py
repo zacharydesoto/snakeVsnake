@@ -31,6 +31,9 @@ class ReplayMemory():
     def sample(self, sample_size):
         return random.sample(self.memory, sample_size)
 
+    def __len__(self):
+        return len(self.memory)
+
 
 class SnakeDQL():
     def __init__(self, learning_rate=1e-3, discount_factor=0.9,
@@ -46,6 +49,8 @@ class SnakeDQL():
         self.loss_fn = nn.MSELoss()
         self.optimizer = None
 
+        print('Snake DQL Initiated')
+
     def train(self, episodes, env, policy_save_path, policy_load_path=None):
         '''Trains a policy DQN given an environment.
     
@@ -58,7 +63,8 @@ class SnakeDQL():
         Returns:
             np array: Rewards earned each episode
         '''
-        state = env.reset()
+        print("Beginning Training")
+        state = env.reset(2, 2)
         num_input_params = env.get_network_state().shape[0]
         num_actions = len(env.actions)
 
@@ -79,7 +85,10 @@ class SnakeDQL():
 
         step_count = 0
 
+        print("Training setup completed")
+
         for i in range(episodes):
+            print(f'starting episode {i}')
             terminated, truncated = False, False
             episode_reward_1, episode_reward_2 = 0, 0
 
@@ -105,6 +114,8 @@ class SnakeDQL():
                 state = new_state
                 step_count += 1
             
+            env.reset(2, 2)
+
             rewards_per_episode_1[i] = episode_reward_1
             rewards_per_episode_2[i] = episode_reward_2
 
@@ -123,9 +134,9 @@ class SnakeDQL():
                     target_dqn.load_state_dict(policy_dqn.state_dict())
                     step_count = 0            
 
-            plt.plot(rewards_per_episode_1)  # TODO: plotted for snake 1 only
+        plt.plot(rewards_per_episode_1)  # TODO: plotted for snake 1 only
 
-            return rewards_per_episode_1, reward2
+        return rewards_per_episode_1, rewards_per_episode_2
         
     def optimize(self, mini_batch, policy_dqn, target_dqn):  # FIXME: Make optimize function optimize on both snakes' rewards.
         # Could maybe do this by 

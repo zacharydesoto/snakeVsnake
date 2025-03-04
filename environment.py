@@ -10,14 +10,14 @@ class SnakeEnvironment:
         self.snake2 = deque()
         self.tomatoes = []
         self.grid = [[Square.EMPTY] * config['GRID_WIDTH'] for _ in range(config['GRID_HEIGHT'])]
-        self.head1_dir = None
-        self.head2_dir = None
+        self.head1_dir = Direction.RIGHT  # FIXME: why does this break if not initialized here?
+        self.head2_dir = Direction.LEFT
         self.snake1_length = 0
         self.snake2_length = 0
 
         self.config = config
 
-        self.actions = {0:'LEFT', 1:'STRAIGHT', 2:'RIGHT'}
+        self.actions = {0:Direction.LEFT, 1:Direction.UP, 2:Direction.RIGHT, 3:Direction.DOWN}
         self.move_counter = 0
         self.truncate_limit = 50000
 
@@ -70,27 +70,28 @@ class SnakeEnvironment:
         if (snake1 is None and snake1_length < snake2_length) or (snake2 is None and snake1_length > snake2_length):
             terminated = True
         
-        self.counter += 1
-        truncated = self.counter >= self.move_counter
+        self.move_counter += 1
+        truncated = self.move_counter >= self.truncate_limit
 
         # FIXME: reward handled only for snake 1 right now 
-        reward = 0
+        reward1, reward2 = 0, 0
         if terminated:
-            reward += 100 if snake1_length > snake2_length else -100
+            reward1 += 100 if snake1_length > snake2_length else -100
         
         # if snake2 and not self.snake2:  # Reward for killing snake 2
         #     reward += 50
 
         if snake1_length > old_snake1_length:  # New length is greater than old length, meaning snake ate a tomato
-            reward += 1
+            reward1 += 1
 
-        return (self.get_network_state, reward1, reward2, terminated, truncated)
+        return (self.get_network_state(), reward1, reward2, terminated, truncated)
         
     
     def get_game_state(self):
-        return (self.grid, self.snake1, self.head1_dir, self.snake1_length, self.snake2, self.head2_dir, self.snake2_length)
+        return (self.grid, self.snake1, self.head1_dir, self.snake1_length, self.snake2, self.head2_dir, self.snake2_length, self.tomatoes)
     
-    def get_network_state(self, is_snake1=True):
+    def get_network_state(self, is_snake1=True):  # FIXME: Don't call np.array(None) or it returns a scalar array with None as the only value
+        # FIXME: We need to change how we represent a snake being dead
         snake1 = np.array(self.snake1)
         snake1_padding = self.snake_arr_size - snake1.shape[0]
         if snake1_padding > 0:

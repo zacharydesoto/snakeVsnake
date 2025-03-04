@@ -14,6 +14,6 @@ def train_model():
     }
     env = SnakeEnvironment(config)
 
-    model.train(100, env, 'model.pt')
+    model.train(101, env, 'model.pt')
 
 main()
