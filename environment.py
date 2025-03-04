@@ -57,15 +57,17 @@ class SnakeEnvironment:
         self.grid, self.snake1, self.head1_dir, self.snake1_length, self.snake2, self.head2, self.snake2_length = grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length
         return self.get_network_state()
     
-    def step(self, input1, input2):
+    def step(self, input1, input2, update_state=True):
         old_snake1_length = self.snake1_length
-        self.grid, self.snake1, self.head1_dir, self.snake1_length, self.snake2, self.head2_dir, self.snake2_length, tomatoes = handle_movement(game_state=self.get_game_state(), input1=input1, input2=input2, config=self.config)
-        self.tomatoes = tomatoes
+        grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length, tomatoes = handle_movement(game_state=self.get_game_state(), input1=input1, input2=input2, config=self.config)
+
+        if update_state:
+            self.grid, self.snake1, self.head1_dir, self.snake1_length, self.snake2, self.head2_dir, self.snake2_length, self.tomatoes = grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length, tomatoes
 
         terminated = False
-        if self.snake1 is None and self.snake2 is None:
+        if snake1 is None and snake2 is None:
             terminated = True
-        if (self.snake1 is None and self.snake1_length < self.snake2_length) or (self.snake2 is None and self.snake1_length > self.snake2_length):
+        if (snake1 is None and snake1_length < snake2_length) or (snake2 is None and snake1_length > snake2_length):
             terminated = True
         
         self.counter += 1
@@ -74,15 +76,15 @@ class SnakeEnvironment:
         # FIXME: reward handled only for snake 1 right now 
         reward = 0
         if terminated:
-            reward += 100 if self.snake1_length > self.snake2_length else -100
+            reward += 100 if snake1_length > snake2_length else -100
         
         # if snake2 and not self.snake2:  # Reward for killing snake 2
         #     reward += 50
 
-        if self.snake1_length > old_snake1_length:  # New length is greater than old length, meaning snake ate a tomato
+        if snake1_length > old_snake1_length:  # New length is greater than old length, meaning snake ate a tomato
             reward += 1
 
-        return (self.get_network_state, reward, terminated, truncated)
+        return (self.get_network_state, reward1, reward2, terminated, truncated)
         
     
     def get_game_state(self):

@@ -1,4 +1,4 @@
-from game import two_player_game
+# from game import two_player_game
 from dqn import *
 from environment import SnakeEnvironment
 

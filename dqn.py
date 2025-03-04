@@ -74,33 +74,42 @@ class SnakeDQL():
 
         self.optimizer = torch.optim.AdamW(
             policy_dqn.parameters(), lr=self.learning_rate)
-        rewards_per_episode = np.zeros(episodes)
+        rewards_per_episode_1 = np.zeros(episodes)
+        rewards_per_episode_2 = np.zeros(episodes)
 
         step_count = 0
 
         for i in range(episodes):
             terminated, truncated = False, False
-            episode_reward = 0
+            episode_reward_1, episode_reward_2 = 0, 0
 
             while not terminated and not truncated:
                 if random.random() < epsilon:  # Choose randomly
-                    action = random.choice(env.actions)
+                    action1 = random.choice(env.actions)
                 else:
                     with torch.no_grad():
-                        action = policy_dqn(state).argmax()
-                
-                new_state, reward, terminated, truncated = env.step(action)
-                episode_reward += reward
+                        action1 = policy_dqn(env.get_network_state(is_snake1=True)).argmax()  # Gets state for snake 1
 
-                memory.append((state, action, new_state, reward, terminated))
+                if random.random() < epsilon:
+                    action2 = random.choice(env.actions)
+                else:
+                    with torch.no_grad():
+                        action2 = policy_dqn(env.get_network_state(is_snake1=False)).argmax()  # Gets state for snake 2
+                
+                new_state, reward1, reward2, terminated, truncated = env.step(action1, action2)
+                episode_reward_1 += reward1
+                episode_reward_2 += reward2
+
+                memory.append((state, action1, action2, new_state, reward1, reward2, terminated))
 
                 state = new_state
                 step_count += 1
             
-            rewards_per_episode[i] = episode_reward
+            rewards_per_episode_1[i] = episode_reward_1
+            rewards_per_episode_2[i] = episode_reward_2
 
             if i % 100 == 0:
-                print(f'Epoch {i} Rewards: {episode_reward}')
+                print(f'Epoch {i} Rewards: Snake 1: {episode_reward_1}, Snake 2: {episode_reward_2}')
                 torch.save(policy_dqn.state_dict(), policy_save_path)
             
             if len(memory) > self.mini_batch_size:
@@ -114,22 +123,23 @@ class SnakeDQL():
                     target_dqn.load_state_dict(policy_dqn.state_dict())
                     step_count = 0            
 
-            plt.plot(rewards_per_episode)
+            plt.plot(rewards_per_episode_1)  # TODO: plotted for snake 1 only
 
-            return rewards_per_episode
+            return rewards_per_episode_1, reward2
         
-    def optimize(self, mini_batch, policy_dqn, target_dqn):
+    def optimize(self, mini_batch, policy_dqn, target_dqn):  # FIXME: Make optimize function optimize on both snakes' rewards.
+        # Could maybe do this by 
         '''Optimizes the policy DQN given a batch from the experience replay buffer.'''
 
         current_q_list = []
         target_q_list = []
 
-        for state, action, new_state, reward, terminated in mini_batch:
+        for state, action1, action2, new_state, reward1, reward2, terminated in mini_batch:
             if terminated:
-                target = torch.tensor([reward])
+                target = torch.tensor([reward1])
             else:
                 target = torch.tensor(
-                    reward + self.discount_factor * target_dqn(new_state).max()
+                    reward1 + self.discount_factor * target_dqn(new_state).max()
                 )
 
             loss = self.loss_fn(target, target_dqn(state))
@@ -138,7 +148,7 @@ class SnakeDQL():
             current_q_list.append(current_q)
 
             target_q = target_dqn(state)
-            target_q[action] = target
+            target_q[action1] = target
             target_q_list.append(target_q)
         
         loss = self.loss_fn(torch.stack(current_q_list), torch.stack(target_q_list))
