@@ -4,10 +4,16 @@ from collections import deque
 
 from utils import *
 from movement import *
+import pickle
 
-def two_player_game():
+def two_player_game(saved_game=None):
 
     pygame.init()
+
+    if saved_game is not None:
+        snake1_actions, snake2_actions, tomato_positions = saved_game
+        print(snake2_actions)
+        load_game = True
 
     # Set up variables for screen and grid
     config = {}
@@ -44,20 +50,24 @@ def two_player_game():
 
     tomatoes = [(2, 2), (16, 16), (10, 10), (2, 18), (16, 2)]
 
-    snake1, snake2 = deque(), deque()
-    snake1.append((1, 1))
-    snake1.append((1, 0))
-    snake2.append((17, 18))
-    snake2.append((17, 19))
+    path1, path2 = deque(), deque()
+    path1.append((1, 1))
+    path1.append((1, 0))
+    path2.append((17, 18))
+    path2.append((17, 19))
 
     head1_dir = Direction.RIGHT
     head2_dir = Direction.LEFT
     snake1_length = 2
     snake2_length = 2
 
-    game_state = (grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length, tomatoes)
+    snake1 = SnakeData(path1, head1_dir, snake1_length, True)
+    snake2 = SnakeData(path2, head2_dir, snake2_length, True)
+
+    game_state = (grid, snake1, snake2, tomatoes)
 
     count = 1
+    i = 0
     input1, input2 = Direction.RIGHT, Direction.LEFT
     prev = defaultdict(bool)
 
@@ -67,16 +77,23 @@ def two_player_game():
 
         # Handle input 60 times a second
         if count < FRAMERATE // TICKS_PER_S:
-            input1, input2, prev = handle_input(key, prev, input1, input2)
+            if not load_game:
+                input1, input2, prev = handle_input(key, prev, input1, input2)
             count += 1
         else:
             # Update game state based on player input
             count = 1
-            game_state = handle_movement(game_state, input1, input2, config)
-            grid, snake1, head1_dir, snake1_length, snake2, head2_dir, snake2_length, _ = game_state
-            if snake1 is None and snake2 is None:
+            if load_game:
+                input1, input2 = snake1_actions[i], snake2_actions[i]
+                i += 1
+            if load_game:
+                grid, snake1, snake2, tomatoes, _, _, tomato_positions = handle_movement(game_state, input1, input2, config, tomato_positions=tomato_positions)
+            else:
+                grid, snake1, snake2, tomatoes, _ = handle_movement(game_state, input1, input2, config)
+            grid, snake1, snake2, _ = game_state
+            if (not snake1.alive) and (not snake2.alive):
                 run = False
-            if (snake1 is None and snake1_length < snake2_length) or (snake2 is None and snake1_length > snake2_length):
+            if (not snake1.alive and snake1.length < snake2.length) or (not snake2.alive and snake1.length > snake2.length):
                 run = False
 
         # Clear old output of screen
@@ -107,7 +124,7 @@ def two_player_game():
                     pygame.draw.rect(screen, RED, (x, y, SQUARE_WIDTH, SQUARE_HEIGHT))
 
         length_font = pygame.font.SysFont('ubuntusans', 50)
-        text_surface = length_font.render(f'Green Snake: {snake1_length}     Blue Snake: {snake2_length}', False, (25, 136, 191))
+        text_surface = length_font.render(f'Green Snake: {snake1.length}     Blue Snake: {snake2.length}', False, (25, 136, 191))
         screen.blit(text_surface, (40, 0))
 
         # Event handler, currently just for closing game
@@ -121,9 +138,9 @@ def two_player_game():
         # Sets frame rate
         clock.tick(FRAMERATE)
 
-    if snake1_length > snake2_length:
+    if snake1.length > snake2.length:
         end_text = "Green Snake Wins!"
-    elif snake2_length > snake1_length:
+    elif snake2.length > snake1.length:
         end_text = "Blue Snake Wins!"
     else:
         end_text = "It's a Tie!"
@@ -135,3 +152,12 @@ def two_player_game():
 
     pygame.time.wait(3000)
     pygame.quit()
+
+def replay_game(load_path):
+    # Load from file
+    with open(load_path, "rb") as f:
+        snake1_actions, snake2_actions, tomato_positions = pickle.load(f)
+
+    saved_game = (snake1_actions, snake2_actions, tomato_positions)
+    two_player_game(saved_game)
+    

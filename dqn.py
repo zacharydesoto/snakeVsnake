@@ -8,14 +8,21 @@ import matplotlib.pyplot as plt
 
 
 class DQN(nn.Module):
-    def __init__(self, in_states, h1_nodes, out_actions):
+    def __init__(self, in_states, h1_nodes, out_actions, device):
         super().__init__()
 
-        self.fc1 = nn.Linear(in_states, h1_nodes)
-        self.out = nn.Linear(h1_nodes, out_actions)
+        self.device = device
+        self.fcs = []
+        prev_nodes = in_states
+        for h1_node in h1_nodes:
+            self.fcs.append(nn.Linear(prev_nodes, h1_node).to(device))
+            prev_nodes = h1_node
+        self.out = nn.Linear(prev_nodes, out_actions).to(device)
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
+        x = x.to(self.device)
+        for fc in self.fcs:
+            x = F.relu(fc(x))
         x = self.out(x)
         return x
 
@@ -39,7 +46,7 @@ class SnakeDQL():
     def __init__(self, learning_rate=1e-3, discount_factor=0.9,
                  network_sync_rate=10,
                  replay_memory_size=1000, mini_batch_size=32,
-                 num_hidden_nodes=500):
+                 num_hidden_nodes=500, device='cpu'):
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
         self.network_sync_rate = network_sync_rate
@@ -48,6 +55,7 @@ class SnakeDQL():
         self.num_hidden_nodes = num_hidden_nodes
         self.loss_fn = nn.MSELoss()
         self.optimizer = None
+        self.device = device
 
         print('Snake DQL Initiated')
 
@@ -64,48 +72,56 @@ class SnakeDQL():
             np array: Rewards earned each episode
         '''
         print("Beginning Training")
-        state = env.reset(2, 2)
+        state = env.reset(2, 2).to(self.device)
         num_input_params = env.get_network_state().shape[0]
         num_actions = len(env.actions)
 
         epsilon = 1
         memory = ReplayMemory(self.replay_memory_size)
 
-        policy_dqn = DQN(num_input_params, self.num_hidden_nodes, num_actions)
+        policy_dqn = DQN(num_input_params, self.num_hidden_nodes, num_actions, self.device).to(self.device)
         if policy_load_path != None:
+            print(f'Loading Policy DQN from {policy_load_path}')
             policy_dqn.load_state_dict(torch.load(policy_load_path))
-        target_dqn = DQN(num_input_params, self.num_hidden_nodes, num_actions)
+        target_dqn = DQN(num_input_params, self.num_hidden_nodes, num_actions, self.device).to(self.device)
 
         target_dqn.load_state_dict(policy_dqn.state_dict())
 
-        self.optimizer = torch.optim.AdamW(
-            policy_dqn.parameters(), lr=self.learning_rate)
+        self.optimizer = torch.optim.AdamW(policy_dqn.parameters(), lr=self.learning_rate)
         rewards_per_episode_1 = np.zeros(episodes)
         rewards_per_episode_2 = np.zeros(episodes)
+        losses = []
 
         step_count = 0
 
         print("Training setup completed")
 
         for i in range(episodes):
-            print(f'starting episode {i}')
+            # print(f'Starting episode {i}')
             terminated, truncated = False, False
             episode_reward_1, episode_reward_2 = 0, 0
 
             while not terminated and not truncated:
                 if random.random() < epsilon:  # Choose randomly
-                    action1 = random.choice(env.actions)
+                    action1 = random.choice(range(len(env.actions)))
+                    action1_dir = env.actions[action1]
                 else:
                     with torch.no_grad():
-                        action1 = policy_dqn(env.get_network_state(is_snake1=True)).argmax()  # Gets state for snake 1
+                        q_vals = policy_dqn(env.get_network_state(is_snake1=True).to(self.device))
+                        action1 = q_vals.argmax().item()  # Gets state for snake 1
+
+                        action1_dir = env.actions[action1]
 
                 if random.random() < epsilon:
-                    action2 = random.choice(env.actions)
+                    action2 = random.choice(range(len(env.actions)))
+                    action2_dir = env.actions[action2]
                 else:
                     with torch.no_grad():
-                        action2 = policy_dqn(env.get_network_state(is_snake1=False)).argmax()  # Gets state for snake 2
+                        action2 = policy_dqn(env.get_network_state(is_snake1=False).to(self.device)).argmax().item()  # Gets state for snake 2
+                        action2_dir = env.actions[action2]
                 
-                new_state, reward1, reward2, terminated, truncated = env.step(action1, action2)
+                new_state, reward1, reward2, terminated, truncated = env.step(action1_dir, action2_dir)
+                new_state = new_state.to(self.device)
                 episode_reward_1 += reward1
                 episode_reward_2 += reward2
 
@@ -114,27 +130,35 @@ class SnakeDQL():
                 state = new_state
                 step_count += 1
             
-            env.reset(2, 2)
+            state = env.reset(2, 2).to(self.device)
 
             rewards_per_episode_1[i] = episode_reward_1
             rewards_per_episode_2[i] = episode_reward_2
 
-            if i % 100 == 0:
+            # Decay epsilon
+            epsilon_min, epsilon_max = 0.1, 1.0
+            decay_rate = 1e-3
+            epsilon = epsilon_min + (epsilon_max - epsilon_min) * np.exp(-decay_rate * i)
+
+            if i % 50 == 0:
                 print(f'Epoch {i} Rewards: Snake 1: {episode_reward_1}, Snake 2: {episode_reward_2}')
+                print(f'Epsilon: {epsilon}')
                 torch.save(policy_dqn.state_dict(), policy_save_path)
             
             if len(memory) > self.mini_batch_size:
                 mini_batch = memory.sample(self.mini_batch_size)
-                self.optimize(mini_batch, policy_dqn, target_dqn)
-
-                # Decay epsilon
-                epsilon = epsilon - 1/episodes
+                loss = self.optimize(mini_batch, policy_dqn, target_dqn)
+                losses.append(loss)
 
                 if step_count > self.network_sync_rate:
                     target_dqn.load_state_dict(policy_dqn.state_dict())
                     step_count = 0            
 
-        plt.plot(rewards_per_episode_1)  # TODO: plotted for snake 1 only
+        plt.plot(losses)  # TODO: plotted for snake 1 only
+        plt.savefig('loss.png')
+
+        plt.plot(rewards_per_episode_1)
+        plt.savefig('rewards.png')
 
         return rewards_per_episode_1, rewards_per_episode_2
         
@@ -147,25 +171,50 @@ class SnakeDQL():
 
         for state, action1, action2, new_state, reward1, reward2, terminated in mini_batch:
             if terminated:
-                target = torch.tensor([reward1])
+                target = torch.tensor([reward1]).to(self.device)
             else:
-                target = torch.tensor(
-                    reward1 + self.discount_factor * target_dqn(new_state).max()
-                )
+                target = reward1 + self.discount_factor * target_dqn(new_state).max().clone().detach().to(self.device)
 
-            loss = self.loss_fn(target, target_dqn(state))
-
-            current_q = policy_dqn(state)
+            current_q = policy_dqn(state).to(self.device)
             current_q_list.append(current_q)
 
-            target_q = target_dqn(state)
+            target_q = target_dqn(state).to(self.device)
             target_q[action1] = target
             target_q_list.append(target_q)
         
-        loss = self.loss_fn(torch.stack(current_q_list), torch.stack(target_q_list))
+        loss = self.loss_fn(torch.stack(current_q_list).to(self.device), torch.stack(target_q_list).to(self.device))
+        loss_value = loss.item()
+
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
+        return loss_value
+
+    def test(self, episodes, env, policy_load_path, save_game_path):
+        num_input_params = env.get_network_state().shape[0]
+        num_actions = len(env.actions)
+
+        policy_dqn = DQN(num_input_params, self.num_hidden_nodes, num_actions, self.device).to(self.device)
+        print(f'Loading Policy DQN from {policy_load_path}')
+        policy_dqn.load_state_dict(torch.load(policy_load_path))
+
+        for i in range(episodes):
+            print(f'Starting episode {i}')
+            state = env.reset(2, 2).to(self.device)
+            terminated, truncated = False, False
+
+            while not terminated and not truncated:
+                # print(policy_dqn(env.get_network_state(is_snake1=True).to(self.device)))
+                action1 = policy_dqn(env.get_network_state(is_snake1=True).to(self.device)).argmax().item()  # Gets state for snake 1
+                action1_dir = env.actions[action1]
+
+                action2 = policy_dqn(env.get_network_state(is_snake1=False).to(self.device)).argmax().item()  # Gets state for snake 2
+                action2_dir = env.actions[action2]
+                
+                new_state, reward1, reward2, terminated, truncated = env.step(action1_dir, action2_dir)
+                new_state = new_state.to(self.device)
+            
+            env.save_game(save_game_path)
 
