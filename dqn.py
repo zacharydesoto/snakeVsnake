@@ -193,7 +193,7 @@ class SnakeDQL():
         
         # Compute current Q values using the policy network
         current_q = policy_dqn(states)  # batch_size x num_actions
-        print(current_q.shape)
+        # print(current_q.shape)
         # Gather the Q-values for the taken actions
         current_q = current_q.gather(1, actions.unsqueeze(1)).squeeze(1)  # Selects the q value for the selected action for each experience in the batch
         

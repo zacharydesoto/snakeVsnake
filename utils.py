@@ -1,4 +1,16 @@
-from movement import Direction, Square
+from enum import Enum
+
+class Direction(Enum):
+    LEFT = (0, -1)
+    UP = (-1, 0)
+    RIGHT = (0, 1)
+    DOWN = (1, 0)
+
+class Square(Enum):
+    EMPTY = 0
+    PLAYER1 = 1
+    PLAYER2 = 2
+    TOMATO = 3
 
 def grid_to_screen(grid_x, grid_y, config):
     screen_x = grid_x * config['SCREEN_WIDTH'] / config['GRID_WIDTH'] + config['MARGIN']

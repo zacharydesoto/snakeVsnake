@@ -4,6 +4,7 @@ from movement import *
 import numpy as np
 import torch
 import pickle
+from utils import *
 
 
 class SnakeEnvironment:
