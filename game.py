@@ -1,5 +1,4 @@
 import pygame
-# from enum import Enum
 from collections import deque
 
 from utils import *
