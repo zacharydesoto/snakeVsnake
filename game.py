@@ -12,7 +12,7 @@ def two_player_game(saved_game=None):
 
     if saved_game is not None:
         snake1_actions, snake2_actions, tomato_positions = saved_game
-        print(snake2_actions)
+        print(snake1_actions)
         load_game = True
 
     # Set up variables for screen and grid
@@ -93,8 +93,8 @@ def two_player_game(saved_game=None):
             grid, snake1, snake2, _ = game_state
             if (not snake1.alive) and (not snake2.alive):
                 run = False
-            if (not snake1.alive and snake1.length < snake2.length) or (not snake2.alive and snake1.length > snake2.length):
-                run = False
+            # if (not snake1.alive and snake1.length < snake2.length) or (not snake2.alive and snake1.length > snake2.length): FIXME: UNCOMMENT
+            #     run = False
 
         # Clear old output of screen
         screen.fill((0, 0, 0))
@@ -150,7 +150,7 @@ def two_player_game(saved_game=None):
     screen.blit(text_surface, (200, 450))
     pygame.display.update()
 
-    pygame.time.wait(3000)
+    pygame.time.wait(1500)
     pygame.quit()
 
 def replay_game(load_path):
@@ -160,4 +160,3 @@ def replay_game(load_path):
 
     saved_game = (snake1_actions, snake2_actions, tomato_positions)
     two_player_game(saved_game)
-    

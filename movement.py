@@ -2,6 +2,7 @@ import pygame
 import random
 from enum import Enum
 from collections import defaultdict
+from utils import *
 
 class Direction(Enum):
     LEFT = (0, -1)
@@ -21,13 +22,6 @@ class SnakeData():
         self.head_dir = head_dir
         self.length = length
         self.alive = alive
-
-
-def get_square(grid, pos):
-    return grid[pos[0]][pos[1]]
-
-def set_square(grid, pos, type):
-    grid[pos[0]][pos[1]] = type
 
 def add_tomato(grid, config, pos=None):
     if pos is None:
@@ -51,14 +45,11 @@ def check_ob_collisions(grid, path, head_dir, alive, config):
     new_head_pos = tuple(a + b for a, b in zip(head_pos, head_dir.value))  # Element-wise addition
 
     # Check for out of bounds
-    out_bounds = new_head_pos[0] < 0 or new_head_pos[0] >= config['GRID_HEIGHT'] or new_head_pos[1] < 0 or new_head_pos[1] >= config['GRID_WIDTH']
-    if out_bounds:
+    if check_out_bounds(new_head_pos, config):
         return grid, None, False
     
     # Check for collision
-    new_square = get_square(grid, new_head_pos)
-    snake_crashed = new_square in [Square.PLAYER1, Square.PLAYER2]
-    if snake_crashed:
+    if check_collision(grid, new_head_pos):
         return grid, None, False
     
     return grid, new_head_pos, True
@@ -68,7 +59,7 @@ def update_snake(grid, snake, square):
         return grid, snake.path, False
 
     head_pos = snake.path[0]
-    new_head_pos = tuple(a + b for a, b in zip(head_pos, snake.head_dir.value))  # Element-wise addition
+    new_head_pos = add_coords(head_pos, snake.head_dir.value)
 
     # Check for eating tomatos
     new_square = get_square(grid, new_head_pos)
@@ -160,9 +151,6 @@ def handle_input(key, prev, input1, input2):
 def handle_movement(game_state, input1, input2, config, tomato_positions=None):
     grid, snake1, snake2, tomatoes = game_state
     head1_dir, head2_dir = snake1.head_dir, snake2.head_dir
-    
-    def check_perpendicular_directions(dir1, dir2):
-        return (dir1 in [Direction.LEFT, Direction.RIGHT]) != (dir2 in [Direction.LEFT, Direction.RIGHT])
     
     # Handle snake turning
     if check_perpendicular_directions(head1_dir, input1):
