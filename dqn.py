@@ -226,10 +226,12 @@ class SnakeDQL():
             
             with torch.no_grad():
                 while not terminated and not truncated:
-                    action1 = policy_dqn(env.get_network_state(is_snake1=True).to(self.device)).argmax().item()  # Gets state for snake 1
+                    q1, _ = policy_dqn(env.get_network_state(is_snake1=True).to(self.device))
+                    action1 = q1.argmax().item()  # Gets state for snake 1
                     action1_dir = env.actions[action1]
 
-                    action2 = policy_dqn(env.get_network_state(is_snake1=False).to(self.device)).argmax().item()  # Gets state for snake 2
+                    _, q2 = policy_dqn(env.get_network_state(is_snake1=False).to(self.device))
+                    action2 = q2.argmax().item()  # Gets state for snake 2
                     action2_dir = env.actions[action2]
                     
                     new_state, reward1, reward2, terminated, truncated = env.step(action1_dir, action2_dir)
