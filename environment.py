@@ -79,6 +79,7 @@ class SnakeEnvironment:
     
     def step(self, input1, input2, update_state=True):
         old_snake1_length = self.snake1.length
+        old_snake2_length = self.snake2.length
         old_head = self.snake1.path[0]
         old_tomatoes = self.tomatoes
 
@@ -98,8 +99,9 @@ class SnakeEnvironment:
 
         # FIXME: reward handled only for snake 1 right now 
         reward1, reward2 = 0, 0
-        # if terminated:
-        #     reward1 += 100 if snake1.length > snake2.length else -100
+        if terminated:
+            reward1 -= 30
+            reward2 -= 30
         
         # if snake2 and not self.snake2:  # Reward for killing snake 2
         #     reward += 50
@@ -109,14 +111,18 @@ class SnakeEnvironment:
 
         # if check_perpendicular_directions(input1, old_snake1_head_dir):
         #     reward1 += 1000
-        reward1 += 5
+        reward1 += 1
+        reward2 += 1
         if self.snake1.length > old_snake1_length:
-            reward1 += 15
+            reward1 += 3
+        if self.snake2.length > old_snake2_length:
+            reward2 += 3
         
-        _, new_dist = get_closest_tomato(self.snake1.path[0], self.tomatoes)
-        _, old_dist = get_closest_tomato(old_head, old_tomatoes)
-        if new_dist < old_dist:
-            reward1 += 1
+        
+        # _, new_dist = get_closest_tomato(self.snake1.path[0], self.tomatoes)
+        # _, old_dist = get_closest_tomato(old_head, old_tomatoes)
+        # if new_dist < old_dist:
+        #     reward1 += 1
 
         if self.save:
             self.snake1_actions.append(input1)
@@ -133,7 +139,7 @@ class SnakeEnvironment:
     def get_game_state(self):
         return self.grid, self.snake1, self.snake2, self.tomatoes
     
-    def get_network_state(self, is_snake1=True):  # FIXME: try the dumb blind snake way where it just sees danger around it
+    def get_network_state(self, is_snake1=True):  # FIXME: try the better blind snake where it sees distance to nearest danger
         # snake1 = np.array(self.snake1.path)
         # snake1_padding = self.snake_arr_size - snake1.shape[0]
         # if snake1_padding > 0:

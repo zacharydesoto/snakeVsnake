@@ -15,7 +15,6 @@ class DQN(nn.Module):
 
         self.linear1 = nn.Linear(in_states, h1_nodes)
         self.linear2 = nn.Linear(h1_nodes, out_actions)
-        self.linear3 = nn.Linear(h1_nodes, out_actions)
 
         # self.fcs = nn.ModuleList()
         # prev_nodes = in_states
@@ -29,8 +28,7 @@ class DQN(nn.Module):
 
         x = F.relu(self.linear1(x))
         q1 = self.linear2(x)
-        q2 = self.linear3(x)
-        return (q1, q2)
+        return q1
 
         # for fc in self.fcs:
         #     x = F.relu(fc(x))
@@ -120,7 +118,7 @@ class SnakeDQL():
                     action1_dir = env.actions[action1]
                 else:
                     with torch.no_grad():
-                        q1, _ = policy_dqn(env.get_network_state(is_snake1=True).to(self.device))
+                        q1 = policy_dqn(env.get_network_state(is_snake1=True).to(self.device))
                         action1 = q1.argmax().item()  # Gets state for snake 1
 
                         action1_dir = env.actions[action1]
@@ -130,7 +128,7 @@ class SnakeDQL():
                     action2_dir = env.actions[action2]
                 else:
                     with torch.no_grad():
-                        _, q2 = policy_dqn(env.get_network_state(is_snake1=False).to(self.device))
+                        q2 = policy_dqn(env.get_network_state(is_snake1=False).to(self.device))
                         action2 = q2.argmax().item()  # Gets state for snake 2
                         action2_dir = env.actions[action2]
                 
@@ -151,7 +149,7 @@ class SnakeDQL():
 
             # Decay epsilon
             epsilon_min, epsilon_max = 0.1, 1.0
-            decay_rate = 3e-4
+            decay_rate = 9e-4
             epsilon = epsilon_min + (epsilon_max - epsilon_min) * np.exp(-decay_rate * i)
 
             if i % 50 == 0:
@@ -199,24 +197,19 @@ class SnakeDQL():
         dones = torch.tensor(dones, dtype=torch.float).to(self.device)
         
         # Compute current Q values using the policy network
-        current_q1, current_q2 = policy_dqn(states)  # batch_size x num_actions
+        current_q1 = policy_dqn(states)  # batch_size x num_actions
         # print(current_q.shape)
         # Gather the Q-values for the taken actions
         current_q1 = current_q1.gather(1, actions1.unsqueeze(1)).squeeze(1)  # Selects the q value for the selected action for each experience in the batch
-        current_q2 = current_q2.gather(1, actions2.unsqueeze(1)).squeeze(1)
         
         # Compute the next Q values from the target network
-        next_q1, next_q2 = target_dqn(new_states)
+        next_q1 = target_dqn(new_states)
         next_q1 = next_q1.max(1)[0]
-        next_q2 = next_q2.max(1)[0]
         # For terminal states, we want the next Q value to be zero
         expected_q1 = rewards1 + self.discount_factor * next_q1 * (1 - dones)  # If terminated, dones[i] = 1, so expected_q = rewards[i]
-        expected_q2 = rewards2 + self.discount_factor * next_q2 * (1 - dones)
         
-        loss1 = self.loss_fn(current_q1, expected_q1)
-        loss2 = self.loss_fn(current_q2, expected_q2)
+        loss = self.loss_fn(current_q1, expected_q1)
         # FIXME: should total loss be sum of individual losses
-        loss = loss1 + loss2
         
         self.optimizer.zero_grad()
         loss.backward()
@@ -240,11 +233,11 @@ class SnakeDQL():
             
             with torch.no_grad():
                 while not terminated and not truncated:
-                    q1, _ = policy_dqn(env.get_network_state(is_snake1=True).to(self.device))
+                    q1 = policy_dqn(env.get_network_state(is_snake1=True).to(self.device))
                     action1 = q1.argmax().item()  # Gets state for snake 1
                     action1_dir = env.actions[action1]
 
-                    _, q2 = policy_dqn(env.get_network_state(is_snake1=False).to(self.device))
+                    q2 = policy_dqn(env.get_network_state(is_snake1=False).to(self.device))
                     action2 = q2.argmax().item()  # Gets state for snake 2
                     action2_dir = env.actions[action2]
                     
