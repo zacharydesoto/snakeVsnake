@@ -15,6 +15,7 @@ class DQN(nn.Module):
 
         self.linear1 = nn.Linear(in_states, h1_nodes)
         self.linear2 = nn.Linear(h1_nodes, out_actions)
+        self.linear3 = nn.Linear(h1_nodes, out_actions)
 
         # self.fcs = nn.ModuleList()
         # prev_nodes = in_states
@@ -27,8 +28,9 @@ class DQN(nn.Module):
         x = x.to(self.device)
 
         x = F.relu(self.linear1(x))
-        x = self.linear2(x)
-        return x
+        q1 = self.linear2(x)
+        q2 = self.linear3(x)
+        return (q1, q2)
 
         # for fc in self.fcs:
         #     x = F.relu(fc(x))
@@ -118,8 +120,8 @@ class SnakeDQL():
                     action1_dir = env.actions[action1]
                 else:
                     with torch.no_grad():
-                        q_vals = policy_dqn(env.get_network_state(is_snake1=True).to(self.device))
-                        action1 = q_vals.argmax().item()  # Gets state for snake 1
+                        q1, _ = policy_dqn(env.get_network_state(is_snake1=True).to(self.device))
+                        action1 = q1.argmax().item()  # Gets state for snake 1
 
                         action1_dir = env.actions[action1]
 
@@ -128,7 +130,8 @@ class SnakeDQL():
                     action2_dir = env.actions[action2]
                 else:
                     with torch.no_grad():
-                        action2 = policy_dqn(env.get_network_state(is_snake1=False).to(self.device)).argmax().item()  # Gets state for snake 2
+                        _, q2 = policy_dqn(env.get_network_state(is_snake1=False).to(self.device))
+                        action2 = q2.argmax().item()  # Gets state for snake 2
                         action2_dir = env.actions[action2]
                 
                 new_state, reward1, reward2, terminated, truncated = env.step(action1_dir, action2_dir)
@@ -176,33 +179,44 @@ class SnakeDQL():
     def optimize(self, mini_batch, policy_dqn, target_dqn):  # FIXME: Make optimize function optimize on both snakes' rewards.
         '''Optimizes the policy DQN given a batch from the experience replay buffer.'''
 
-        states, actions, new_states, rewards, dones = [], [], [], [], []
+        states, actions1, actions2, new_states, rewards1, rewards2, dones = [], [], [], [], [], [], []
         for state, action1, action2, new_state, reward1, reward2, terminated in mini_batch:
             states.append(state)
-            actions.append(action1)
-            rewards.append(reward1)
+            actions1.append(action1)
+            actions2.append(action2)
+            rewards1.append(reward1)
+            rewards2.append(reward2)
             new_states.append(new_state)
             dones.append(terminated)
         
         # Convert lists to tensors (make sure they are on the correct device)
         states = torch.stack(states).to(self.device)
         new_states = torch.stack(new_states).to(self.device)
-        actions = torch.tensor(actions, dtype=torch.long).to(self.device)
-        rewards = torch.tensor(rewards, dtype=torch.float).to(self.device)
+        actions1 = torch.tensor(actions1, dtype=torch.long).to(self.device)
+        actions2 = torch.tensor(actions2, dtype=torch.long).to(self.device)
+        rewards1 = torch.tensor(rewards1, dtype=torch.float).to(self.device)
+        rewards2 = torch.tensor(rewards2, dtype=torch.float).to(self.device)
         dones = torch.tensor(dones, dtype=torch.float).to(self.device)
         
         # Compute current Q values using the policy network
-        current_q = policy_dqn(states)  # batch_size x num_actions
+        current_q1, current_q2 = policy_dqn(states)  # batch_size x num_actions
         # print(current_q.shape)
         # Gather the Q-values for the taken actions
-        current_q = current_q.gather(1, actions.unsqueeze(1)).squeeze(1)  # Selects the q value for the selected action for each experience in the batch
+        current_q1 = current_q1.gather(1, actions1.unsqueeze(1)).squeeze(1)  # Selects the q value for the selected action for each experience in the batch
+        current_q2 = current_q2.gather(1, actions2.unsqueeze(1)).squeeze(1)
         
         # Compute the next Q values from the target network
-        next_q = target_dqn(new_states).max(1)[0]
+        next_q1, next_q2 = target_dqn(new_states)
+        next_q1 = next_q1.max(1)[0]
+        next_q2 = next_q2.max(1)[0]
         # For terminal states, we want the next Q value to be zero
-        expected_q = rewards + self.discount_factor * next_q * (1 - dones)  # If terminated, dones[i] = 1, so expected_q = rewards[i]
+        expected_q1 = rewards1 + self.discount_factor * next_q1 * (1 - dones)  # If terminated, dones[i] = 1, so expected_q = rewards[i]
+        expected_q2 = rewards2 + self.discount_factor * next_q2 * (1 - dones)
         
-        loss = self.loss_fn(current_q, expected_q)
+        loss1 = self.loss_fn(current_q1, expected_q1)
+        loss2 = self.loss_fn(current_q2, expected_q2)
+        # FIXME: should total loss be sum of individual losses
+        loss = loss1 + loss2
         
         self.optimizer.zero_grad()
         loss.backward()
