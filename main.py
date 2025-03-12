@@ -1,40 +1,28 @@
 from game import *
 from dqn import *
 from environment import SnakeEnvironment
+from agent import Agent, train
 
 def main():
-    train_model()
-    test_model()
-    replay_game('test.pickle')
-
-def train_model():
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f'Running on device {device}')
-
-    model = SnakeDQL(learning_rate=1e-6, discount_factor=0.99, network_sync_rate=1000, replay_memory_size=10000, mini_batch_size=128, num_hidden_nodes=500, device=device)
+    game()
+    # player_vs_ai('new_model1.pt')
+    # ai_vs_ai('final_blind_model.pt')
 
     config = {
         'GRID_WIDTH': 20,
         'GRID_HEIGHT': 20
     }
-    env = SnakeEnvironment(config, save=True)
+    # train(config, 'final_blind_model.pt', best_rewards=0)
 
-    model.train(1000, env, 'model9.pt', 'model9.pt')    
+def player_vs_ai(path):
+    agent = Agent(path)
 
-def test_model():
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f'Running on device {device}')
+    game(snake1_model=agent)
 
-    model = SnakeDQL(num_hidden_nodes=500, device=device)
+def ai_vs_ai(path, ticks_per_s=30):
+    agent1 = Agent(path)
+    agent2 = Agent(path)
 
-    config = {
-        'GRID_WIDTH': 20,
-        'GRID_HEIGHT': 20
-    }
-
-    env = SnakeEnvironment(config, save=True)
-    model.test(1, env, 'model9.pt', 'test.pickle')
-
-    # Model 9: 500 hidden nodes
+    game(ticks_per_s, snake1_model=agent1, snake2_model=agent2)
 
 main()

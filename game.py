@@ -1,18 +1,14 @@
 import pygame
+from enum import Enum
 from collections import deque
 
+from environment import *
 from utils import *
 from movement import *
 import pickle
 
-def two_player_game(saved_game=None):
-
+def game(ticks_per_s=5, snake1_model=None, snake2_model=None):
     pygame.init()
-
-    if saved_game is not None:
-        snake1_actions, snake2_actions, tomato_positions = saved_game
-        print(snake1_actions)
-        load_game = True
 
     # Set up variables for screen and grid
     config = {}
@@ -27,7 +23,7 @@ def two_player_game(saved_game=None):
     config['MARGIN'] = MARGIN
     config['TOP_MARGIN'] = TOP_MARGIN
     FRAMERATE = 60
-    TICKS_PER_S = 5
+    TICKS_PER_S = ticks_per_s
 
     screen = pygame.display.set_mode((SCREEN_WIDTH+2*MARGIN, SCREEN_HEIGHT+2*MARGIN + TOP_MARGIN))
     clock = pygame.time.Clock()
@@ -35,40 +31,11 @@ def two_player_game(saved_game=None):
     pygame.display.set_caption('SnakeRL')
     pygame.font.init()
 
-    # Initialize grid and snakes
-    grid = [[Square.EMPTY] * GRID_WIDTH for _ in range(GRID_HEIGHT)]
-    grid[1][1] = Square.PLAYER1
-    grid[1][0] = Square.PLAYER1
-    grid[17][18] = Square.PLAYER2
-    grid[17][19] = Square.PLAYER2
-    grid[2][2] = Square.TOMATO
-    grid[16][16] = Square.TOMATO
-    grid[10][10] = Square.TOMATO
-    grid[2][18] = Square.TOMATO
-    grid[16][2] = Square.TOMATO
-
-    tomatoes = [(2, 2), (16, 16), (10, 10), (2, 18), (16, 2)]
-
-    path1, path2 = deque(), deque()
-    path1.append((1, 1))
-    path1.append((1, 0))
-    path2.append((17, 18))
-    path2.append((17, 19))
-
-    head1_dir = Direction.RIGHT
-    head2_dir = Direction.LEFT
-    snake1_length = 2
-    snake2_length = 2
-
-    snake1 = SnakeData(path1, head1_dir, snake1_length, True)
-    snake2 = SnakeData(path2, head2_dir, snake2_length, True)
-
-    game_state = (grid, snake1, snake2, tomatoes)
-
     count = 1
-    i = 0
     input1, input2 = Direction.RIGHT, Direction.LEFT
     prev = defaultdict(bool)
+
+    env = SnakeEnvironment(config)
 
     run = True
     while run:
@@ -76,24 +43,19 @@ def two_player_game(saved_game=None):
 
         # Handle input 60 times a second
         if count < FRAMERATE // TICKS_PER_S:
-            if not load_game:
-                input1, input2, prev = handle_input(key, prev, input1, input2)
+            input1, input2, prev = handle_input(key, prev, input1, input2)
             count += 1
         else:
             # Update game state based on player input
             count = 1
-            if load_game:
-                input1, input2 = snake1_actions[i], snake2_actions[i]
-                i += 1
-            if load_game:
-                grid, snake1, snake2, tomatoes, _, _, tomato_positions = handle_movement(game_state, input1, input2, config, tomato_positions=tomato_positions)
-            else:
-                grid, snake1, snake2, tomatoes, _ = handle_movement(game_state, input1, input2, config)
-            grid, snake1, snake2, _ = game_state
-            if (not snake1.alive) and (not snake2.alive):
+            if snake1_model:
+                input1 = snake1_model.get_action(env.get_network_state(is_snake1=True), train=False)
+            if snake2_model:
+                input2 = snake2_model.get_action(env.get_network_state(is_snake1=False), train=False)
+            _, _, _, terminated, truncated = env.step(input1, input2)
+            if terminated or truncated:
                 run = False
-            # if (not snake1.alive and snake1.length < snake2.length) or (not snake2.alive and snake1.length > snake2.length): FIXME: UNCOMMENT
-            #     run = False
+
 
         # Clear old output of screen
         screen.fill((0, 0, 0))
@@ -109,6 +71,7 @@ def two_player_game(saved_game=None):
         pygame.draw.rect(screen, WHITE, (MARGIN - BORDER_WIDTH/2, MARGIN + TOP_MARGIN - BORDER_WIDTH/2, SCREEN_WIDTH + BORDER_WIDTH, SCREEN_HEIGHT + BORDER_WIDTH))
         pygame.draw.rect(screen, BLACK, (MARGIN, MARGIN + TOP_MARGIN, SCREEN_WIDTH, SCREEN_HEIGHT))
 
+        grid = env.get_grid()
         # Outputs grid to screen
         for row in range(len(grid)):
             for col in range(len(grid[0])):
@@ -123,7 +86,7 @@ def two_player_game(saved_game=None):
                     pygame.draw.rect(screen, RED, (x, y, SQUARE_WIDTH, SQUARE_HEIGHT))
 
         length_font = pygame.font.SysFont('ubuntusans', 50)
-        text_surface = length_font.render(f'Green Snake: {snake1.length}     Blue Snake: {snake2.length}', False, (25, 136, 191))
+        text_surface = length_font.render(f'Green Snake: {env.snake1.length}     Blue Snake: {env.snake2.length}', False, (25, 136, 191))
         screen.blit(text_surface, (40, 0))
 
         # Event handler, currently just for closing game
@@ -137,9 +100,9 @@ def two_player_game(saved_game=None):
         # Sets frame rate
         clock.tick(FRAMERATE)
 
-    if snake1.length > snake2.length:
+    if env.snake1.length > env.snake2.length:
         end_text = "Green Snake Wins!"
-    elif snake2.length > snake1.length:
+    elif env.snake2.length > env.snake1.length:
         end_text = "Blue Snake Wins!"
     else:
         end_text = "It's a Tie!"
@@ -151,11 +114,3 @@ def two_player_game(saved_game=None):
 
     pygame.time.wait(1500)
     pygame.quit()
-
-def replay_game(load_path):
-    # Load from file
-    with open(load_path, "rb") as f:
-        snake1_actions, snake2_actions, tomato_positions = pickle.load(f)
-
-    saved_game = (snake1_actions, snake2_actions, tomato_positions)
-    two_player_game(saved_game)

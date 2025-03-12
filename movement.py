@@ -25,7 +25,7 @@ def add_tomato(grid, config, pos=None):
 
 def check_ob_collisions(grid, path, head_dir, alive, config):
     if not alive:
-        return grid, None, False
+        return None, False
     
     # Calculate new head position
     head_pos = path[0]
@@ -33,13 +33,13 @@ def check_ob_collisions(grid, path, head_dir, alive, config):
 
     # Check for out of bounds
     if check_out_bounds(new_head_pos, config):
-        return grid, None, False
+        return None, False
     
     # Check for collision
     if check_collision(grid, new_head_pos):
-        return grid, None, False
+        return None, False
     
-    return grid, new_head_pos, True
+    return new_head_pos, True
 
 def update_snake(grid, snake, square):
     if not snake.alive:
@@ -148,8 +148,8 @@ def handle_movement(game_state, input1, input2, config, tomato_positions=None):
     snake1.head_dir = head1_dir
     snake2.head_dir = head2_dir
 
-    grid, head1, snake1.alive = check_ob_collisions(grid, snake1.path, head1_dir, snake1.alive, config)
-    grid, head2, snake2.alive = check_ob_collisions(grid, snake2.path, head2_dir, snake2.alive, config)
+    head1, snake1.alive = check_ob_collisions(grid, snake1.path, head1_dir, snake1.alive, config)
+    head2, snake2.alive = check_ob_collisions(grid, snake2.path, head2_dir, snake2.alive, config)
 
     if head1 is not None and head2 is not None and head1 == head2:
         snake1.alive = False

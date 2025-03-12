@@ -36,7 +36,7 @@ def set_square(grid, pos, type):
     grid[pos[0]][pos[1]] = type
 
 def calculate_distance(coord1, coord2):
-    return (coord2[0] - coord1[0]) + (coord2[1] - coord1[1])
+    return abs(coord2[0] - coord1[0]) + abs(coord2[1] - coord1[1])
 
 def get_closest_tomato(head, tomatoes):
     closest_dist, closest_coords = float('inf'), (0, 0)
@@ -45,6 +45,7 @@ def get_closest_tomato(head, tomatoes):
             closest_dist = calculate_distance(coords, head)
             closest_coords = coords
     
-    tomato_dist_y = closest_coords[0] - head[0]
-    tomato_dist_x = closest_coords[1] - head[1]
-    return (tomato_dist_y, tomato_dist_x), closest_dist
+    # tomato_dist_y = closest_coords[0] - head[0]
+    # tomato_dist_x = closest_coords[1] - head[1]
+    # return (tomato_dist_y, tomato_dist_x), closest_dist
+    return closest_coords
