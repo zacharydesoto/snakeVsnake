@@ -4,6 +4,7 @@ from collections import deque
 from dqn import DQN, SnakeDQL
 from environment import *
 import os
+import matplotlib.pyplot as plt
 
 class Agent:
 
@@ -60,11 +61,17 @@ class Agent:
         return self.model.state_dict()
 
 
-def train(config, path, best_rewards=0):
+def train(config, path, best_rewards=0, episodes=None):
     agent = Agent(path)
     env = SnakeEnvironment(config)
     total_rewards1, total_rewards2 = 0, 0
+    plot_rewards_1, plot_rewards_2 = [], []
+    avg_loss = 0
+    plot_losses = []
     while True:
+        if episodes and agent.n_games >= episodes:
+            break
+
         # Get old states
         state1 = env.get_network_state(is_snake1=True)
         state2 = env.get_network_state(is_snake1=False)
@@ -97,4 +104,27 @@ def train(config, path, best_rewards=0):
                 best_rewards = total_rewards1 + total_rewards2
                 print('Saving new model')
                 torch.save(agent.get_state_dict(), path)
+            plot_rewards_1.append(total_rewards1)
+            plot_rewards_2.append(total_rewards2)
             total_rewards1, total_rewards2 = 0, 0
+            avg_loss = float(agent.trainer.plot_losses_total) / agent.trainer.num_steps
+            plot_losses.append(avg_loss)
+            avg_loss = 0
+    
+    plot_figures(agent.n_games, plot_rewards_1=plot_rewards_1, plot_rewards_2=plot_rewards_2, plot_losses=plot_losses)
+
+def plot_figures(n_games, plot_rewards_1, plot_rewards_2, plot_losses):
+    x_axis = range(1, n_games + 1)
+    plt.figure(figsize=(10, 6))
+    plt.plot(x_axis, plot_rewards_1, marker='o', linestyle='-', label='Snake 1')
+    plt.plot(x_axis, plot_rewards_2, marker='o', linestyle='-', label='Snake 2')
+    plt.xlabel("Number of Games")
+    plt.ylabel("Rewards")
+    plt.legend()
+    plt.savefig('new_rewards.png')
+
+    plt.figure(figsize=(10,6))
+    plt.plot(x_axis, plot_losses)
+    plt.xlabel("Number of Games")
+    plt.ylabel("Average Loss")
+    plt.savefig('new_losses.png')

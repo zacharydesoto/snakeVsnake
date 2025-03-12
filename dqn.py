@@ -4,7 +4,6 @@ from torch import nn
 import torch.nn.functional as F
 from collections import deque
 import random
-import matplotlib.pyplot as plt
 
 
 class DQN(nn.Module):
@@ -54,6 +53,8 @@ class SnakeDQL():
         self.model = model
         self.optimizer = torch.optim.AdamW(model.parameters(), lr=self.lr)
         self.loss_fn = nn.MSELoss()
+        self.plot_losses_total = 0
+        self.num_steps = 0
 
     def train_step(self, state, action, reward, next_state, dones):
         action = torch.tensor(action, dtype=torch.long)
@@ -77,6 +78,8 @@ class SnakeDQL():
         # Optimize through PyTorch
         self.optimizer.zero_grad()
         loss = self.loss_fn(target, pred)
+        self.plot_losses_total += loss
+        self.num_steps += 1
         loss.backward()
 
         self.optimizer.step()
