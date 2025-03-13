@@ -12,7 +12,7 @@ class DQN(nn.Module):
         self.device = device
         
         self.conv_block1 = nn.Sequential(
-            nn.Conv2d(in_channels=in_states, out_channels=10, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(in_channels=1, out_channels=10, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.Conv2d(in_channels=10, out_channels=10, kernel_size=3, stride=1, padding=1),
             nn.ReLU()
@@ -31,11 +31,10 @@ class DQN(nn.Module):
         )
 
     def forward(self, x):
-        grid_part = x[:, :3, :, :]
-        blind_part = x[:, 3:, :, :]
+        grid_part = x[:, :1, :, :]
+        blind_part = x[:, 1:, :, :]
         grid_features = self.conv_block1(grid_part)
         grid_features = self.conv_block2(grid_features)
-        # print(x.shape)
         combined_features = torch.cat((grid_features, blind_part), dim=1)
         out = self.layer_stack(combined_features)
         return out

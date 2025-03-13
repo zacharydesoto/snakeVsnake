@@ -137,9 +137,9 @@ class SnakeEnvironment:
 
     def get_portion_grid(self, is_snake1):
         '''
-        Return a 5x5 grid centered on head_pos as a torch tensor with 3 channels (RGB).
-        If grid portion goes out-of-bounds, fill with danger (-1 for each channel).
-        The returned tensor has shape (1, 3, 5, 5) so that it can be directly input into the CNN.
+        Return a 5x5 grid centered on head_pos as a torch tensor with 1 channel.
+        If grid portion goes out-of-bounds, fill with danger (-1).
+        The returned tensor has shape (1, 5, 5) so that it can be directly input into the CNN.
         '''
         head_pos = self.snake1.path[0] if is_snake1 else self.snake2.path[0]
         head_y, head_x = head_pos
@@ -150,26 +150,20 @@ class SnakeEnvironment:
         for y in range(top_left_y, top_left_y + 5):
             row = []
             for x in range(top_left_x, top_left_x + 5):
-
-                if check_out_bounds((y, x), self.config):
-                    # Mark as danger using RGB (-1, -1, -1)
-                    pixel = [-1, -1, -1]
-                elif check_collision(self.grid, (y, x)):
-                    pixel = [-1, -1, -1]
+                if check_out_bounds((y, x), self.config) or check_collision(self.grid, (y, x)):
+                    val = -1
                 else:
-                    square = self.grid[y][x]
-                    val = square.value
-                    pixel = [val, val, val]
+                    val = self.grid[y][x].value
 
-                row.append(pixel)
+                row.append(val)
             portion_grid.append(row)
 
         grid_tensor = torch.tensor(portion_grid, dtype=torch.float32)
-        grid_tensor = grid_tensor.permute(2, 0, 1) # (3, 5, 5)
-        grid_tensor = grid_tensor.unsqueeze(0) # (1, 3, 5, 5)
 
+        grid_tensor = grid_tensor.unsqueeze(0) # (1, 5, 5)
+        grid_tensor = grid_tensor.unsqueeze(0) # (1, 1, 5, 5)
 
-        blind_tensor = self.get_network_state(is_snake1=is_snake1)        
+        blind_tensor = self.get_network_state(is_snake1=is_snake1)  
 
         blind_tensor = blind_tensor.view(1, 8, 1, 1) # shape becomes (1, 8, 1, 1)
         blind_tensor = blind_tensor.expand(1, 8, grid_tensor.size(2), grid_tensor.size(3))  # (1, 8, 5, 5)

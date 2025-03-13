@@ -16,7 +16,7 @@ class Agent:
         self.lr = 1e-3
         self.max_memory = 100_000
         self.memory = deque(maxlen=self.max_memory)
-        self.model = DQN(in_states=3, out_actions=4, device=device) # FIXME: does this need .to(device)
+        self.model = DQN(in_states=1, out_actions=4, device=device) # FIXME: does this need .to(device)
         if os.path.isfile(path):
             print(f'Loading DQN from {path}')
             self.model.load_state_dict(torch.load(path))
