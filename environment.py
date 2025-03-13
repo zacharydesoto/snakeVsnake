@@ -18,7 +18,9 @@ class SnakeEnvironment:
         self.truncate_limit = 5000
         num_cells = config['GRID_WIDTH'] * config['GRID_HEIGHT']
         self.snake_arr_size = num_cells // 2 + 1
-        self.actions = {0:Direction.LEFT, 1:Direction.UP, 2:Direction.RIGHT, 3:Direction.DOWN}
+        self.actions = [0, 1, 2]  # Left, straight, right
+        self.int_to_action = {0: Direction.LEFT, 1: Direction.UP, 2: Direction.RIGHT, 3: Direction.DOWN}
+        self.action_to_int = {Direction.LEFT: 0, Direction.UP: 1, Direction.RIGHT: 2, Direction.DOWN: 3}
         
         self.reset()
     
@@ -56,10 +58,15 @@ class SnakeEnvironment:
 
     def step(self, action1, action2):
         # Makes sure actions are Direction objects
+
         if type(action1) == int:
-            action1 = self.actions[action1]
+            current_dir = self.action_to_int[self.snake1.head_dir]
+            new_dir = (current_dir + action1 - 1) % len(self.int_to_action)
+            action1 = self.int_to_action[new_dir]
         if type(action2) == int:
-            action2 = self.actions[action2]
+            current_dir = self.action_to_int[self.snake2.head_dir]
+            new_dir = (current_dir + action2  - 1) % len(self.int_to_action)
+            action2 = self.int_to_action[new_dir]
 
         # Only updates the direction if the snake is turning
         if check_perpendicular_directions(self.snake1.head_dir, action1):
@@ -110,27 +117,46 @@ class SnakeEnvironment:
             reward2 -= 10
 
         # Return state, reward, terminated, truncated
-        return (self.get_network_state(), reward1, reward2, terminated, truncated)
+        return (reward1, reward2, terminated, truncated)
     
     def get_network_state(self, is_snake1=True):
         '''Returns current state of game in form (danger_left, danger_up, danger_right, danger_down, food_left, food_up, food_right, food_down)'''
-        head = self.snake1.path[0] if is_snake1 else self.snake2.path[0]
-        left, right = add_coords(head, Direction.LEFT.value), add_coords(head, Direction.RIGHT.value)
-        up, down = add_coords(head, Direction.UP.value), add_coords(head, Direction.DOWN.value)
+        snake = self.snake1 if is_snake1 else self.snake2
+        head = snake.path[0]
+
+        # Handles relative positions by accounting for head direction by rotation functions
+        if snake.head_dir == Direction.LEFT:
+            abs_to_rel_offset = lambda tup: (tup[1], -tup[0])
+            rel_to_abs_offset = lambda tup: (-tup[1], tup[0])
+        elif snake.head_dir == Direction.UP:
+            abs_to_rel_offset = lambda tup: (tup[0], tup[1])
+            rel_to_abs_offset = lambda tup: (tup[0], tup[1])
+        elif snake.head_dir == Direction.RIGHT:
+            abs_to_rel_offset = lambda tup: (-tup[1], tup[0])
+            rel_to_abs_offset = lambda tup: (tup[1], -tup[0])
+        else:
+            abs_to_rel_offset = lambda tup: (-tup[0], -tup[1])
+            rel_to_abs_offset = lambda tup: (-tup[0], -tup[1])
+
+        left = add_coords(head, rel_to_abs_offset(Direction.LEFT.value))
+        straight = add_coords(head, rel_to_abs_offset(Direction.UP.value))
+        right = add_coords(head, rel_to_abs_offset(Direction.RIGHT.value))
 
         danger_left = check_out_bounds(left, self.config) or check_collision(self.grid, left)
-        danger_up = check_out_bounds(up, self.config) or check_collision(self.grid, up)
+        danger_straight = check_out_bounds(straight, self.config) or check_collision(self.grid, straight)
         danger_right = check_out_bounds(right, self.config) or check_collision(self.grid, right)
-        danger_down = check_out_bounds(down, self.config) or check_collision(self.grid, down)
 
         closest_tomato = get_closest_tomato(head, self.tomatoes)
+        closest_tomato_offset = (closest_tomato[0] - head[0], closest_tomato[1] - head[1])
+        tomato_rel_offset = abs_to_rel_offset(closest_tomato_offset)
 
-        food_left = closest_tomato[1] < head[1]
-        food_up = closest_tomato[0] < head[0]
-        food_right = closest_tomato[1] > head[1]
-        food_down = closest_tomato[0] > head[0]
+        food_left = tomato_rel_offset[1] < 0
+        food_up = tomato_rel_offset[0] < 0
+        food_right = tomato_rel_offset[1] > 0
+        food_down = tomato_rel_offset[0] > 0
 
-        return torch.tensor([danger_left, danger_up, danger_right, danger_down, food_left, food_up, food_right, food_down], dtype=torch.float)
+        state = [danger_left, danger_straight, danger_right, food_left, food_up, food_right, food_down]
+        return torch.tensor(state, dtype=torch.float)
     
     def get_grid(self):
         return self.grid

@@ -8,15 +8,16 @@ import matplotlib.pyplot as plt
 
 class Agent:
 
-    def __init__(self, path, device=torch.device('cpu')):
+    def __init__(self, path, n_input, n_hidden, n_actions, device=torch.device('cpu')):
         self.n_games = 0
+        self.n_actions = n_actions
         self.epsilon = 0
         self.discount_rate = 0.9
         self.batch_size = 1024
         self.lr = 1e-3
         self.max_memory = 100_000
         self.memory = deque(maxlen=self.max_memory)
-        self.model = DQN(8, 256, 4, device)
+        self.model = DQN(n_input, n_hidden, n_actions, device)
         if os.path.isfile(path):
             print(f'Loading DQN from {path}')
             self.model.load_state_dict(torch.load(path))
@@ -51,7 +52,7 @@ class Agent:
         
         # Epsilon-greedy
         if random.random() < self.epsilon:
-            move = random.randint(0, 3)
+            move = random.randint(0, self.n_actions - 1)
         else:
             move = self.model(state).argmax().item()
 
@@ -61,8 +62,8 @@ class Agent:
         return self.model.state_dict()
 
 
-def train(config, path, best_rewards=0, episodes=None):
-    agent = Agent(path)
+def train(config, path, n_input, n_hidden, n_actions, best_rewards=0, episodes=None):
+    agent = Agent(path, n_input, n_hidden, n_actions)
     env = SnakeEnvironment(config)
     total_rewards1, total_rewards2 = 0, 0
     plot_rewards_1, plot_rewards_2 = [], []
@@ -81,7 +82,8 @@ def train(config, path, best_rewards=0, episodes=None):
         action2 = agent.get_action(state2)
 
         # Perform actions and get new state
-        new_state1, reward1, reward2, done, truncated = env.step(action1, action2)
+        reward1, reward2, done, truncated = env.step(action1, action2)
+        new_state1 = env.get_network_state(is_snake1=True)
         new_state2 = env.get_network_state(is_snake1=False)
         total_rewards1 += reward1
         total_rewards2 += reward2
