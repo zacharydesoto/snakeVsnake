@@ -150,19 +150,15 @@ class SnakeEnvironment:
         for y in range(top_left_y, top_left_y + 5):
             row = []
             for x in range(top_left_x, top_left_x + 5):
-                y_index = y - top_left_y
-                x_index = x - top_left_x
 
                 if check_out_bounds((y, x), self.config):
                     # Mark as danger using RGB (-1, -1, -1)
                     pixel = [-1, -1, -1]
-                elif get_square(self.grid, (y_index, x_index)) in [Square.PLAYER1, Square.PLAYER2]:
+                elif check_collision(self.grid, (y, x)):
                     pixel = [-1, -1, -1]
                 else:
-                    square = self.grid[y_index][x_index]
+                    square = self.grid[y][x]
                     val = square.value
-                    if val == 2:
-                        val = 1 # Treat snake1 and snake2 the same
                     pixel = [val, val, val]
 
                 row.append(pixel)
@@ -171,4 +167,13 @@ class SnakeEnvironment:
         grid_tensor = torch.tensor(portion_grid, dtype=torch.float32)
         grid_tensor = grid_tensor.permute(2, 0, 1) # (3, 5, 5)
         grid_tensor = grid_tensor.unsqueeze(0) # (1, 3, 5, 5)
-        return grid_tensor
+
+
+        blind_tensor = self.get_network_state(is_snake1=is_snake1)        
+
+        blind_tensor = blind_tensor.view(1, 8, 1, 1) # shape becomes (1, 8, 1, 1)
+        blind_tensor = blind_tensor.expand(1, 8, grid_tensor.size(2), grid_tensor.size(3))  # (1, 8, 5, 5)
+
+        combined_tensor = torch.cat((grid_tensor, blind_tensor), dim=1)  # shape: (1, 11, 5, 5)
+
+        return combined_tensor

@@ -27,14 +27,18 @@ class DQN(nn.Module):
 
         self.layer_stack = nn.Sequential(
             nn.Flatten(), # Flatten inputs to a single vector
-            nn.Linear(in_features=10*5*5, out_features=out_actions)
+            nn.Linear(in_features=(10+8)*5*5, out_features=out_actions) # Change in_features 
         )
 
     def forward(self, x):
-        x = self.conv_block1(x)
-        x = self.conv_block2(x)
-        x = self.layer_stack(x)
-        return x
+        grid_part = x[:, :3, :, :]
+        blind_part = x[:, 3:, :, :]
+        grid_features = self.conv_block1(grid_part)
+        grid_features = self.conv_block2(grid_features)
+        # print(x.shape)
+        combined_features = torch.cat((grid_features, blind_part), dim=1)
+        out = self.layer_stack(combined_features)
+        return out
 
 
 # Define memory for Exerience

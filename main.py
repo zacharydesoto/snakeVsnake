@@ -6,13 +6,13 @@ from agent import Agent, train
 def main():
     # game()
     # player_vs_ai('new_model1.pt')
-    # ai_vs_ai('cnn_blind_model.pt')
 
     config = {
         'GRID_WIDTH': 20,
         'GRID_HEIGHT': 20
     }
-    train(config, 'cnn_blind_model.pt', best_rewards=0, episodes=150)
+    # train(config, 'cnn_combined_model.pt', best_rewards=0, episodes=450)
+    ai_vs_ai('cnn_combined_model.pt')
 
 
 def player_vs_ai(path):
