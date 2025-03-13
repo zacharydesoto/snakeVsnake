@@ -16,7 +16,7 @@ class Agent:
         self.lr = 1e-3
         self.max_memory = 100_000
         self.memory = deque(maxlen=self.max_memory)
-        self.model = DQN(8, 256, 4, device)
+        self.model = DQN(in_states=3, out_actions=4, device=device) # FIXME: does this need .to(device)
         if os.path.isfile(path):
             print(f'Loading DQN from {path}')
             self.model.load_state_dict(torch.load(path))
@@ -39,6 +39,8 @@ class Agent:
         self.trainer.train_step(states, actions, rewards, next_states, dones)
 
     def train_short_memory(self, state, action, reward, next_state, done):
+        state = state.squeeze(0)
+        next_state = next_state.squeeze(0)
         self.trainer.train_step(state, action, reward, next_state, done)
 
     def get_action(self, state, train=True):
@@ -73,8 +75,8 @@ def train(config, path, best_rewards=0, episodes=None):
             break
 
         # Get old states
-        state1 = env.get_network_state(is_snake1=True)
-        state2 = env.get_network_state(is_snake1=False)
+        state1 = env.get_portion_grid(is_snake1=True) # (1, 3, 5, 5) to input in model 
+        state2 = env.get_portion_grid(is_snake1=False)
 
         # Get agents' actions
         action1 = agent.get_action(state1)
@@ -82,7 +84,7 @@ def train(config, path, best_rewards=0, episodes=None):
 
         # Perform actions and get new state
         new_state1, reward1, reward2, done, truncated = env.step(action1, action2)
-        new_state2 = env.get_network_state(is_snake1=False)
+        new_state2 = env.get_portion_grid(is_snake1=False)
         total_rewards1 += reward1
         total_rewards2 += reward2
 
@@ -91,6 +93,10 @@ def train(config, path, best_rewards=0, episodes=None):
         agent.train_short_memory(state2, action2, reward2, new_state2, done)
 
         # Save experience for replay later
+        state1 = state1.squeeze(0)
+        state2 = state2.squeeze(0)
+        new_state1 = new_state1.squeeze(0)
+        new_state2 = new_state2.squeeze(0)
         agent.remember(state1, action1, reward1, new_state1, done)
         agent.remember(state2, action2, reward2, new_state2, done)
 

@@ -7,29 +7,34 @@ import random
 
 
 class DQN(nn.Module):
-    def __init__(self, in_states, h1_nodes, out_actions, device):
+    def __init__(self, in_states, out_actions, device):
         super().__init__()
         self.device = device
-        self.linear1 = nn.Linear(in_states, h1_nodes)
-        self.linear2 = nn.Linear(h1_nodes, out_actions)
+        
+        self.conv_block1 = nn.Sequential(
+            nn.Conv2d(in_channels=in_states, out_channels=10, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(in_channels=10, out_channels=10, kernel_size=3, stride=1, padding=1),
+            nn.ReLU()
+        )
 
-        # self.fcs = nn.ModuleList()
-        # prev_nodes = in_states
-        # for h1_node in h1_nodes:
-        #     self.fcs.append(nn.Linear(prev_nodes, h1_node))
-        #     prev_nodes = h1_node
-        # self.out = nn.Linear(prev_nodes, out_actions)
+        self.conv_block2 = nn.Sequential(
+            nn.Conv2d(in_channels=10, out_channels=10, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(in_channels=10, out_channels=10, kernel_size=3, stride=1, padding=1),
+            nn.ReLU()
+        )
+
+        self.layer_stack = nn.Sequential(
+            nn.Flatten(), # Flatten inputs to a single vector
+            nn.Linear(in_features=10*5*5, out_features=out_actions)
+        )
 
     def forward(self, x):
-        x = x.to(self.device)
-        x = F.relu(self.linear1(x))
-        x = self.linear2(x)
+        x = self.conv_block1(x)
+        x = self.conv_block2(x)
+        x = self.layer_stack(x)
         return x
-
-        # for fc in self.fcs:
-        #     x = F.relu(fc(x))
-        # x = self.out(x)
-        # return x
 
 
 # Define memory for Exerience
@@ -60,7 +65,7 @@ class SnakeDQL():
         action = torch.tensor(action, dtype=torch.long)
         reward = torch.tensor(reward, dtype=torch.float)
 
-        if len(state.shape) == 1:  # Training on a single experience
+        if len(state.shape) == 3:  # Training on a single experience
             # Need to unsqueeze to ensure consistent dimensions with batch optimization
             state = torch.unsqueeze(state, 0)
             next_state = torch.unsqueeze(next_state, 0)
@@ -69,10 +74,10 @@ class SnakeDQL():
             dones = (dones, )
 
         pred = self.model(state)
-
+        
         target = pred.clone()
         for i in range(len(dones)):
-            Q_new = reward[i] + self.discount_rate * torch.max(self.model(next_state[i])) * (1 - dones[i])
+            Q_new = reward[i] + self.discount_rate * torch.max(self.model(next_state[i].unsqueeze(0))) * (1 - dones[i])
             target[i][action[i]] = Q_new
 
         # Optimize through PyTorch

@@ -4,15 +4,16 @@ from environment import SnakeEnvironment
 from agent import Agent, train
 
 def main():
-    game()
+    # game()
     # player_vs_ai('new_model1.pt')
-    # ai_vs_ai('final_blind_model.pt')
+    # ai_vs_ai('cnn_blind_model.pt')
 
     config = {
         'GRID_WIDTH': 20,
         'GRID_HEIGHT': 20
     }
-    # train(config, 'final_blind_model.pt', best_rewards=0)
+    train(config, 'cnn_blind_model.pt', best_rewards=0, episodes=150)
+
 
 def player_vs_ai(path):
     agent = Agent(path)

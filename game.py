@@ -49,9 +49,9 @@ def game(ticks_per_s=5, snake1_model=None, snake2_model=None):
             # Update game state based on player input
             count = 1
             if snake1_model:
-                input1 = snake1_model.get_action(env.get_network_state(is_snake1=True), train=False)
+                input1 = snake1_model.get_action(env.get_portion_grid(is_snake1=True), train=False)
             if snake2_model:
-                input2 = snake2_model.get_action(env.get_network_state(is_snake1=False), train=False)
+                input2 = snake2_model.get_action(env.get_portion_grid(is_snake1=False), train=False)
             _, _, _, terminated, truncated = env.step(input1, input2)
             if terminated or truncated:
                 run = False
