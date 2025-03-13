@@ -3,7 +3,7 @@ from dqn import *
 from environment import SnakeEnvironment
 
 def main():
-    train_model()
+    # train_model()
     test_model()
     replay_game('test.pickle')
 
@@ -11,7 +11,7 @@ def train_model():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Running on device {device}')
 
-    model = SnakeDQL(learning_rate=1e-6, discount_factor=0.99, network_sync_rate=1000, replay_memory_size=10000, mini_batch_size=128, num_hidden_nodes=500, device=device)
+    model = SnakeDQL(learning_rate=1e-4, discount_factor=0.95, network_sync_rate=50, replay_memory_size=100000, mini_batch_size=512, num_hidden_nodes=256, device=device)
 
     config = {
         'GRID_WIDTH': 20,
@@ -19,13 +19,13 @@ def train_model():
     }
     env = SnakeEnvironment(config, save=True)
 
-    model.train(1000, env, 'model9.pt', 'model9.pt')    
+    model.train(10000, env, 'model8.pt', 'model8.pt')    
 
 def test_model():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Running on device {device}')
 
-    model = SnakeDQL(num_hidden_nodes=500, device=device)
+    model = SnakeDQL(num_hidden_nodes=256, device=device)
 
     config = {
         'GRID_WIDTH': 20,
@@ -33,7 +33,7 @@ def test_model():
     }
 
     env = SnakeEnvironment(config, save=True)
-    model.test(1, env, 'model9.pt', 'test.pickle')
+    model.test(1, env, 'model8.pt', 'test.pickle')
 
     # Model 9: 500 hidden nodes
 

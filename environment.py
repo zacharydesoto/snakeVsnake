@@ -25,7 +25,7 @@ class SnakeEnvironment:
 
         self.actions = {0:Direction.LEFT, 1:Direction.UP, 2:Direction.RIGHT, 3:Direction.DOWN}
         self.move_counter = 0
-        self.truncate_limit = 5000
+        self.truncate_limit = 1000
 
         num_cells = config['GRID_WIDTH'] * config['GRID_HEIGHT']
         self.snake_arr_size = num_cells // 2 + 1
@@ -81,6 +81,7 @@ class SnakeEnvironment:
         old_snake1_length = self.snake1.length
         old_snake2_length = self.snake2.length
         old_head = self.snake1.path[0]
+        old_head2 = self.snake2.path[0]
         old_tomatoes = self.tomatoes
 
         grid, snake1, snake2, tomatoes, _, tomato_pos1, tomato_pos2 = handle_movement(game_state=self.get_game_state(), input1=input1, input2=input2, config=self.config)
@@ -100,8 +101,8 @@ class SnakeEnvironment:
         # FIXME: reward handled only for snake 1 right now 
         reward1, reward2 = 0, 0
         if terminated:
-            reward1 -= 30
-            reward2 -= 30
+            reward1 -= 10
+            reward2 -= 10
         
         # if snake2 and not self.snake2:  # Reward for killing snake 2
         #     reward += 50
@@ -111,18 +112,23 @@ class SnakeEnvironment:
 
         # if check_perpendicular_directions(input1, old_snake1_head_dir):
         #     reward1 += 1000
-        reward1 += 1
-        reward2 += 1
+        # reward1 += 1
+        # reward2 += 1
         if self.snake1.length > old_snake1_length:
-            reward1 += 3
+            reward1 += 10
         if self.snake2.length > old_snake2_length:
-            reward2 += 3
+            reward2 += 10
         
         
         # _, new_dist = get_closest_tomato(self.snake1.path[0], self.tomatoes)
         # _, old_dist = get_closest_tomato(old_head, old_tomatoes)
+        # _, new_dist2 = get_closest_tomato(self.snake2.path[0], self.tomatoes)
+        # _, old_dist2 = get_closest_tomato(old_head2, old_tomatoes)
         # if new_dist < old_dist:
-        #     reward1 += 1
+        #     reward1 += 0.1
+        # if new_dist2 < old_dist2:
+        #     reward2 += 0.1
+            
 
         if self.save:
             self.snake1_actions.append(input1)

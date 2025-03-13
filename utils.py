@@ -41,8 +41,8 @@ def calculate_distance(coord1, coord2):
 def get_closest_tomato(head, tomatoes):
     closest_dist, closest_coords = float('inf'), (0, 0)
     for coords in tomatoes:
-        if calculate_distance(coords, head) < closest_dist:
-            closest_dist = calculate_distance(coords, head)
+        if abs(calculate_distance(coords, head)) < closest_dist:
+            closest_dist = abs(calculate_distance(coords, head))
             closest_coords = coords
     
     tomato_dist_y = closest_coords[0] - head[0]

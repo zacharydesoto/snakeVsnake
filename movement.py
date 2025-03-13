@@ -11,6 +11,7 @@ class SnakeData():
         self.alive = alive
 
 def add_tomato(grid, config, pos=None):
+    random.seed(42)
     if pos is None:
         while True:
             row = random.choice(range(config['GRID_HEIGHT']))
