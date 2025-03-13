@@ -138,13 +138,18 @@ class SnakeEnvironment:
             abs_to_rel_offset = lambda tup: (-tup[0], -tup[1])
             rel_to_abs_offset = lambda tup: (-tup[0], -tup[1])
 
-        left = add_coords(head, rel_to_abs_offset(Direction.LEFT.value))
-        straight = add_coords(head, rel_to_abs_offset(Direction.UP.value))
-        right = add_coords(head, rel_to_abs_offset(Direction.RIGHT.value))
-
-        danger_left = check_out_bounds(left, self.config) or check_collision(self.grid, left)
-        danger_straight = check_out_bounds(straight, self.config) or check_collision(self.grid, straight)
-        danger_right = check_out_bounds(right, self.config) or check_collision(self.grid, right)
+        state = []
+        danger_offsets = [(0, -1), (-1, 0), (0, 1)] # Left, straight, right
+        danger_offsets.extend([(-1, -1), (-1, 1)]) # Straight-left, straight_right
+        danger_offsets.extend([(-2, -1), (-2, 0), (-2, 1)]) # 2 spaces forward
+        danger_offsets.extend([(0, -2), (0, 2), (-1, -2), (-1, -2), (-2, -2), (-2, 2)]) # Grow to 5x3
+        danger_offsets.extend([(-3, -2), (-3, -1), (-3, 0), (-3, 1), (-3, 2)]) # Grow to 5x4
+        danger_offsets.extend([(-4, -2), (-4, -1), (-4, 0), (-4, 1), (-4, 2)]) # Grow to 5x5
+        for rel_offset in danger_offsets:
+            abs_offset = rel_to_abs_offset(rel_offset)
+            new_coords = add_coords(head, abs_offset)
+            danger = check_out_bounds(new_coords, self.config) or check_collision(self.grid, new_coords)
+            state.append(danger)
 
         closest_tomato = get_closest_tomato(head, self.tomatoes)
         closest_tomato_offset = (closest_tomato[0] - head[0], closest_tomato[1] - head[1])
@@ -155,7 +160,8 @@ class SnakeEnvironment:
         food_right = tomato_rel_offset[1] > 0
         food_down = tomato_rel_offset[0] > 0
 
-        state = [danger_left, danger_straight, danger_right, food_left, food_up, food_right, food_down]
+        state.extend([food_left, food_up, food_right, food_down])
+
         return torch.tensor(state, dtype=torch.float)
     
     def get_grid(self):

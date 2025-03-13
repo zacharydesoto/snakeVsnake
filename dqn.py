@@ -10,26 +10,31 @@ class DQN(nn.Module):
     def __init__(self, in_states, h1_nodes, out_actions, device):
         super().__init__()
         self.device = device
-        self.linear1 = nn.Linear(in_states, h1_nodes)
-        self.linear2 = nn.Linear(h1_nodes, out_actions)
 
-        # self.fcs = nn.ModuleList()
-        # prev_nodes = in_states
-        # for h1_node in h1_nodes:
-        #     self.fcs.append(nn.Linear(prev_nodes, h1_node))
-        #     prev_nodes = h1_node
-        # self.out = nn.Linear(prev_nodes, out_actions)
+        if type(h1_nodes) == int:
+            self.single_layer = True
+            self.linear1 = nn.Linear(in_states, h1_nodes)
+            self.linear2 = nn.Linear(h1_nodes, out_actions)
+        else:
+            self.single_layer = False
+            self.fcs = nn.ModuleList()
+            prev_nodes = in_states
+            for h1_node in h1_nodes:
+                self.fcs.append(nn.Linear(prev_nodes, h1_node))
+                prev_nodes = h1_node
+            self.out = nn.Linear(prev_nodes, out_actions)
 
     def forward(self, x):
-        x = x.to(self.device)
-        x = F.relu(self.linear1(x))
-        x = self.linear2(x)
-        return x
-
-        # for fc in self.fcs:
-        #     x = F.relu(fc(x))
-        # x = self.out(x)
-        # return x
+        if self.single_layer:
+            x = x.to(self.device)
+            x = F.relu(self.linear1(x))
+            x = self.linear2(x)
+            return x
+        else:
+            for fc in self.fcs:
+                x = F.relu(fc(x))
+            x = self.out(x)
+            return x
 
 
 # Define memory for Exerience
