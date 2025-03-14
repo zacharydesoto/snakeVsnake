@@ -7,7 +7,7 @@ import random
 
 
 class DQN(nn.Module):
-    def __init__(self, in_states, out_actions, device):
+    def __init__(self, in_states, out_actions, device, using_cnn=True):
         super().__init__()
         self.device = device
         
@@ -18,25 +18,30 @@ class DQN(nn.Module):
             nn.ReLU()
         )
 
-        self.conv_block2 = nn.Sequential(
-            nn.Conv2d(in_channels=10, out_channels=10, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(in_channels=10, out_channels=10, kernel_size=3, stride=1, padding=1),
-            nn.ReLU()
-        )
+        # self.conv_block2 = nn.Sequential(
+        #     nn.Conv2d(in_channels=10, out_channels=10, kernel_size=3, stride=1, padding=1),
+        #     nn.ReLU(),
+        #     nn.Conv2d(in_channels=10, out_channels=10, kernel_size=3, stride=1, padding=1),
+        #     nn.ReLU()
+        # )
 
         self.layer_stack = nn.Sequential(
             nn.Flatten(), # Flatten inputs to a single vector
-            nn.Linear(in_features=(10+8)*5*5, out_features=out_actions) # Change in_features 
+            nn.Linear(in_features=10*23*23, out_features=25) # Change in_features 
         )
 
+        self.linear = nn.Linear(in_features=25+8, out_features=out_actions)
+
     def forward(self, x):
-        grid_part = x[:, :1, :, :]
-        blind_part = x[:, 1:, :, :]
-        grid_features = self.conv_block1(grid_part)
-        grid_features = self.conv_block2(grid_features)
-        combined_features = torch.cat((grid_features, blind_part), dim=1)
-        out = self.layer_stack(combined_features)
+        blind_inp = x[0]
+        conv_inp = x[1].unsqueeze(0).unsqueeze(0)
+
+        grid_features = self.conv_block1(conv_inp)
+        # grid_features = self.conv_block2(grid_features)
+        grid_features = self.layer_stack(grid_features).squeeze(0)
+
+        combined_features = torch.cat((blind_inp, grid_features), dim=0)
+        out = self.linear(combined_features)
         return out
 
 
@@ -68,19 +73,21 @@ class SnakeDQL():
         action = torch.tensor(action, dtype=torch.long)
         reward = torch.tensor(reward, dtype=torch.float)
 
-        if len(state.shape) == 3:  # Training on a single experience
+        if type(dones) != list:  # Training on a single experience
             # Need to unsqueeze to ensure consistent dimensions with batch optimization
-            state = torch.unsqueeze(state, 0)
-            next_state = torch.unsqueeze(next_state, 0)
-            action = torch.unsqueeze(action, 0)
-            reward = torch.unsqueeze(reward, 0)
-            dones = (dones, )
+            state = [state]
+            next_state = [next_state]
+            action = [action]
+            reward = [reward]
+            dones = [dones]
 
-        pred = self.model(state)
+        pred = torch.zeros(len(dones), 4)
+        for i in range(len(dones)):
+            pred[i] = self.model(state[i])
         
         target = pred.clone()
         for i in range(len(dones)):
-            Q_new = reward[i] + self.discount_rate * torch.max(self.model(next_state[i].unsqueeze(0))) * (1 - dones[i])
+            Q_new = reward[i] + self.discount_rate * torch.max(self.model(next_state[i])) * (1 - dones[i])
             target[i][action[i]] = Q_new
 
         # Optimize through PyTorch

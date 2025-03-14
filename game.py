@@ -12,7 +12,7 @@ def game(ticks_per_s=5, snake1_model=None, snake2_model=None):
 
     # Set up variables for screen and grid
     config = {}
-    SCREEN_WIDTH, SCREEN_HEIGHT  = 500, 500  # Make sure screen width and height are multiples of grid width and height
+    SCREEN_WIDTH, SCREEN_HEIGHT  = 800, 800  # Make sure screen width and height are multiples of grid width and height
     GRID_WIDTH, GRID_HEIGHT = 20, 20
     MARGIN = 10
     TOP_MARGIN = 100
@@ -49,10 +49,10 @@ def game(ticks_per_s=5, snake1_model=None, snake2_model=None):
             # Update game state based on player input
             count = 1
             if snake1_model:
-                input1 = snake1_model.get_action(env.get_portion_grid(is_snake1=True), train=False)
+                input1 = snake1_model.get_action(env.get_network_state(is_snake1=True), train=False)
             if snake2_model:
-                input2 = snake2_model.get_action(env.get_portion_grid(is_snake1=False), train=False)
-            _, _, _, terminated, truncated = env.step(input1, input2)
+                input2 = snake2_model.get_action(env.get_network_state(is_snake1=False), train=False)
+            _, _, terminated, truncated = env.step(input1, input2)
             if terminated or truncated:
                 run = False
 

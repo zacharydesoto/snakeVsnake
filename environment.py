@@ -110,9 +110,9 @@ class SnakeEnvironment:
             reward2 -= 10
 
         # Return state, reward, terminated, truncated
-        return (self.get_portion_grid(is_snake1=True), reward1, reward2, terminated, truncated)
+        return (reward1, reward2, terminated, truncated)
     
-    def get_network_state(self, is_snake1=True):
+    def get_network_state(self, is_snake1=True, using_cnn=True):
         '''Returns current state of game in form (danger_left, danger_up, danger_right, danger_down, food_left, food_up, food_right, food_down)'''
         head = self.snake1.path[0] if is_snake1 else self.snake2.path[0]
         left, right = add_coords(head, Direction.LEFT.value), add_coords(head, Direction.RIGHT.value)
@@ -130,7 +130,14 @@ class SnakeEnvironment:
         food_right = closest_tomato[1] > head[1]
         food_down = closest_tomato[0] > head[0]
 
-        return torch.tensor([danger_left, danger_up, danger_right, danger_down, food_left, food_up, food_right, food_down], dtype=torch.float)
+        blind_tensor = torch.tensor([danger_left, danger_up, danger_right, danger_down, food_left, food_up, food_right, food_down], dtype=torch.float)
+        state = [blind_tensor]
+
+        if using_cnn:
+            grid_tensor = self.get_portion_grid(is_snake1=is_snake1)
+            state.append(grid_tensor)
+
+        return state
     
     def get_grid(self):
         return self.grid
@@ -143,13 +150,12 @@ class SnakeEnvironment:
         '''
         head_pos = self.snake1.path[0] if is_snake1 else self.snake2.path[0]
         head_y, head_x = head_pos
-        top_left_y, top_left_x = head_y - 2, head_x - 2
+        top_left_y, top_left_x = head_y - 11, head_x - 11
 
-        # 5x5 grid where each cell is a list of three values (R, G, B)
         portion_grid = []
-        for y in range(top_left_y, top_left_y + 5):
+        for y in range(top_left_y, top_left_y + 23):
             row = []
-            for x in range(top_left_x, top_left_x + 5):
+            for x in range(top_left_x, top_left_x + 23):
                 if check_out_bounds((y, x), self.config) or check_collision(self.grid, (y, x)):
                     val = -1
                 else:
@@ -158,16 +164,6 @@ class SnakeEnvironment:
                 row.append(val)
             portion_grid.append(row)
 
-        grid_tensor = torch.tensor(portion_grid, dtype=torch.float32)
+        grid_tensor = torch.tensor(portion_grid, dtype=torch.float32)  # (5, 5)
 
-        grid_tensor = grid_tensor.unsqueeze(0) # (1, 5, 5)
-        grid_tensor = grid_tensor.unsqueeze(0) # (1, 1, 5, 5)
-
-        blind_tensor = self.get_network_state(is_snake1=is_snake1)  
-
-        blind_tensor = blind_tensor.view(1, 8, 1, 1) # shape becomes (1, 8, 1, 1)
-        blind_tensor = blind_tensor.expand(1, 8, grid_tensor.size(2), grid_tensor.size(3))  # (1, 8, 5, 5)
-
-        combined_tensor = torch.cat((grid_tensor, blind_tensor), dim=1)  # shape: (1, 11, 5, 5)
-
-        return combined_tensor
+        return grid_tensor

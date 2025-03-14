@@ -34,13 +34,10 @@ class Agent:
             mini_sample = self.memory
 
         # Repackage data
-        states, actions, rewards, next_states, dones = zip(*mini_sample)
-        states = torch.stack(states)
+        states, actions, rewards, next_states, dones = map(list, zip(*mini_sample))
         self.trainer.train_step(states, actions, rewards, next_states, dones)
 
     def train_short_memory(self, state, action, reward, next_state, done):
-        state = state.squeeze(0)
-        next_state = next_state.squeeze(0)
         self.trainer.train_step(state, action, reward, next_state, done)
 
     def get_action(self, state, train=True):
@@ -75,16 +72,17 @@ def train(config, path, best_rewards=0, episodes=None):
             break
 
         # Get old states
-        state1 = env.get_portion_grid(is_snake1=True) # (1, 3, 5, 5) to input in model 
-        state2 = env.get_portion_grid(is_snake1=False)
+        state1 = env.get_network_state(is_snake1=True) # (1, 3, 5, 5) to input in model 
+        state2 = env.get_network_state(is_snake1=False)
 
         # Get agents' actions
         action1 = agent.get_action(state1)
         action2 = agent.get_action(state2)
 
         # Perform actions and get new state
-        new_state1, reward1, reward2, done, truncated = env.step(action1, action2)
-        new_state2 = env.get_portion_grid(is_snake1=False)
+        reward1, reward2, done, truncated = env.step(action1, action2)
+        new_state1 = env.get_network_state(is_snake1=True)
+        new_state2 = env.get_network_state(is_snake1=False)
         total_rewards1 += reward1
         total_rewards2 += reward2
 
@@ -93,10 +91,6 @@ def train(config, path, best_rewards=0, episodes=None):
         agent.train_short_memory(state2, action2, reward2, new_state2, done)
 
         # Save experience for replay later
-        state1 = state1.squeeze(0)
-        state2 = state2.squeeze(0)
-        new_state1 = new_state1.squeeze(0)
-        new_state2 = new_state2.squeeze(0)
         agent.remember(state1, action1, reward1, new_state1, done)
         agent.remember(state2, action2, reward2, new_state2, done)
 
@@ -107,7 +101,60 @@ def train(config, path, best_rewards=0, episodes=None):
             agent.train_long_memory()
             print(f'Episode {agent.n_games}, Reward 1: {total_rewards1}, Reward 2: {total_rewards2}, Epsilon: {agent.epsilon}')
             if total_rewards1 + total_rewards2 > best_rewards or agent.n_games % 100 == 99:
-                best_rewards = total_rewards1 + total_rewards2
+                if total_rewards1 + total_rewards2 > best_rewards:
+                    best_rewards = total_rewards1 + total_rewards2
+                print('Saving new model')
+                torch.save(agent.get_state_dict(), path)
+            plot_rewards_1.append(total_rewards1)
+            plot_rewards_2.append(total_rewards2)
+            total_rewards1, total_rewards2 = 0, 0
+            avg_loss = float(agent.trainer.plot_losses_total) / agent.trainer.num_steps
+            plot_losses.append(avg_loss)
+            avg_loss = 0
+    
+    plot_figures(agent.n_games, plot_rewards_1=plot_rewards_1, plot_rewards_2=plot_rewards_2, plot_losses=plot_losses)
+
+def test(config, path, episodes):
+    agent = Agent(path)
+    env = SnakeEnvironment(config)
+    total_rewards1, total_rewards2 = 0, 0
+    plot_rewards_1, plot_rewards_2 = [], []
+    while True:
+        if episodes and agent.n_games >= episodes:
+            break
+
+        # Get old states
+        state1 = env.get_network_state(is_snake1=True) # (1, 3, 5, 5) to input in model 
+        state2 = env.get_network_state(is_snake1=False)
+
+        # Get agents' actions
+        action1 = agent.get_action(state1)
+        action2 = agent.get_action(state2)
+
+        # Perform actions and get new state
+        reward1, reward2, done, truncated = env.step(action1, action2)
+        new_state1 = env.get_network_state(is_snake1=True)
+        new_state2 = env.get_network_state(is_snake1=False)
+        total_rewards1 += reward1
+        total_rewards2 += reward2
+
+        # Train based on experience
+        agent.train_short_memory(state1, action1, reward1, new_state1, done)
+        agent.train_short_memory(state2, action2, reward2, new_state2, done)
+
+        # Save experience for replay later
+        agent.remember(state1, action1, reward1, new_state1, done)
+        agent.remember(state2, action2, reward2, new_state2, done)
+
+
+        if done or truncated: # Episode over
+            env.reset()
+            agent.n_games += 1
+            agent.train_long_memory()
+            print(f'Episode {agent.n_games}, Reward 1: {total_rewards1}, Reward 2: {total_rewards2}, Epsilon: {agent.epsilon}')
+            if total_rewards1 + total_rewards2 > best_rewards or agent.n_games % 100 == 99:
+                if total_rewards1 + total_rewards2 > best_rewards:
+                    best_rewards = total_rewards1 + total_rewards2
                 print('Saving new model')
                 torch.save(agent.get_state_dict(), path)
             plot_rewards_1.append(total_rewards1)
