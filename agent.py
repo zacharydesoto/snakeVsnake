@@ -130,3 +130,48 @@ def plot_figures(n_games, plot_rewards_1, plot_rewards_2, plot_losses):
     plt.xlabel("Number of Games")
     plt.ylabel("Average Loss")
     plt.savefig('new_losses.png')
+
+def test(config, path, n_input, n_hidden, n_actions, episodes=10):
+    agent = Agent(path, n_input, n_hidden, n_actions)
+    agent.n_games = 1000
+    agent.model.eval()
+    env = SnakeEnvironment(config)
+
+    snake1_lengths = []
+    snake2_lengths = []
+
+    for i in range(episodes):
+        print(f"Running episode {i}")
+        while True:
+            # Get old states
+            state1 = env.get_network_state(is_snake1=True)
+            state2 = env.get_network_state(is_snake1=False)
+
+            # Get agents' actions
+            action1 = agent.get_action(state1)
+            action2 = agent.get_action(state2)
+
+            # Perform actions and get new state
+            _, _, done, truncated = env.step(action1, action2)
+
+            if done or truncated: # Episode over
+                snake1_lengths.append(env.snake1.length)
+                snake2_lengths.append(env.snake2.length)
+
+                env.reset()
+                agent.n_games += 1
+                break
+    
+
+    x_axis = range(1, episodes + 1)
+    plt.figure(figsize=(10, 6))
+    plt.plot(x_axis, snake1_lengths, marker='o', linestyle='-', label='Snake 1')
+    plt.plot(x_axis, snake2_lengths, marker='o', linestyle='-', label='Snake 2')
+    plt.xlabel("Number of Games")
+    plt.ylabel("Lengths")
+    plt.title('"Blind" Snake Lengths in Testing')
+    plt.legend()
+    plt.savefig('lengths.png')
+
+    print(f'Snake 1 average length: {np.average(np.array(snake1_lengths))}')
+    print(f'Snake 2 average length: {np.average(np.array(snake2_lengths))}')
