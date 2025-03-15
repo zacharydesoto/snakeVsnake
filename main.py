@@ -4,16 +4,15 @@ from environment import SnakeEnvironment
 from agent import Agent, train, test
 
 def main():
-    # game()
-    # player_vs_ai('new_model1.pt')
+    # player_vs_ai('local_vision_model.pt')
 
     config = {
         'GRID_WIDTH': 20,
         'GRID_HEIGHT': 20
     }
-    # train(config, 'cnn_combined_model.pt', best_rewards=0, episodes=450)
-    ai_vs_ai('cnn_combined_model.pt')
-    # get_agent_test(config, 'cnn_combined_model.pt', baseline=True)
+    # train(config, 'local_vision_model.pt', best_rewards=0, episodes=450)
+    # ai_vs_ai('local_vision_model.pt')
+    get_agent_test(config, 'local_vision_model.pt', baseline=True)
 
 
 def player_vs_ai(path):

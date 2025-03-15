@@ -18,7 +18,7 @@ class Agent:
         self.lr = 1e-3
         self.max_memory = 100_000
         self.memory = deque(maxlen=self.max_memory)
-        self.model = DQN(in_states=1, out_actions=4, device=device) # FIXME: does this need .to(device)
+        self.model = DQN(in_states=1, out_actions=4, device=device) 
         if os.path.isfile(path):
             print(f'Loading DQN from {path}')
             self.model.load_state_dict(torch.load(path))
@@ -56,7 +56,6 @@ class Agent:
                 move = random.choice(possible_actions)
             else:
                 move = 0
-            # print(f"Random move {move}")
             return move
         
         # Decay epsilon linearly
@@ -90,7 +89,7 @@ def train(config, path, best_rewards=0, episodes=None):
             break
 
         # Get old states
-        state1 = env.get_portion_grid(is_snake1=True) # (1, 3, 5, 5) to input in model 
+        state1 = env.get_portion_grid(is_snake1=True) 
         state2 = env.get_portion_grid(is_snake1=False)
 
         # Get agents' actions
@@ -124,7 +123,8 @@ def train(config, path, best_rewards=0, episodes=None):
             agent.train_long_memory()
             print(f'Episode {agent.n_games}, Reward 1: {total_rewards1}, Reward 2: {total_rewards2}, Epsilon: {agent.epsilon}')
             if total_rewards1 + total_rewards2 > best_rewards or agent.n_games % 100 == 99:
-                best_rewards = total_rewards1 + total_rewards2
+                if total_rewards1 + total_rewards2 > best_rewards:
+                    best_rewards = total_rewards1 + total_rewards2
                 print('Saving new model')
                 torch.save(agent.get_state_dict(), path)
             plot_rewards_1.append(total_rewards1)
@@ -170,12 +170,8 @@ def test(config, path, baseline=False, episodes=100):
             state1 = env.get_portion_grid(is_snake1=True)
             state2 = env.get_portion_grid(is_snake1=False)
 
-            # print(f'state1 shape {state1.shape}')
-            # print(f'state2 shape {state2.shape}')
-
             # Get agents' actions
             action1 = agent1.get_action(state1)
-            # action2 = agent.get_action(state2)
             
             # For baseline (random) model
             action2 = agent2.get_action(state2, env=env)

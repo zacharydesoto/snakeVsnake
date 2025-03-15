@@ -44,8 +44,4 @@ def get_closest_tomato(head, tomatoes):
         if calculate_distance(coords, head) < closest_dist:
             closest_dist = calculate_distance(coords, head)
             closest_coords = coords
-    
-    # tomato_dist_y = closest_coords[0] - head[0]
-    # tomato_dist_x = closest_coords[1] - head[1]
-    # return (tomato_dist_y, tomato_dist_x), closest_dist
     return closest_coords

@@ -145,7 +145,7 @@ class SnakeEnvironment:
         head_y, head_x = head_pos
         top_left_y, top_left_x = head_y - 2, head_x - 2
 
-        # 5x5 grid where each cell is a list of three values (R, G, B)
+        # 5x5 grid where each cell is -1 (danger), 0 (empty), 3 (tomato)
         portion_grid = []
         for y in range(top_left_y, top_left_y + 5):
             row = []
@@ -155,21 +155,18 @@ class SnakeEnvironment:
                 else:
                     val = self.grid[y][x].value
 
-                row.append([val, val, val])
+                row.append(val)
             portion_grid.append(row)
 
         grid_tensor = torch.tensor(portion_grid, dtype=torch.float32)
-
-        # grid_tensor = grid_tensor.unsqueeze(0) # (1, 5, 5)
-        grid_tensor = grid_tensor.permute(2, 0, 1)
+        grid_tensor = grid_tensor.unsqueeze(0) # (1, 5, 5)
         grid_tensor = grid_tensor.unsqueeze(0) # (1, 1, 5, 5)
 
         blind_tensor = self.get_network_state(is_snake1=is_snake1)  
-
-        blind_tensor = blind_tensor.view(1, 8, 1, 1) # shape becomes (1, 8, 1, 1)
+        blind_tensor = blind_tensor.view(1, 8, 1, 1) 
         blind_tensor = blind_tensor.expand(1, 8, grid_tensor.size(2), grid_tensor.size(3))  # (1, 8, 5, 5)
 
-        combined_tensor = torch.cat((grid_tensor, blind_tensor), dim=1)  # shape: (1, 11, 5, 5)
+        combined_tensor = torch.cat((grid_tensor, blind_tensor), dim=1)  # shape: (1, 9, 5, 5)
 
         return combined_tensor
 

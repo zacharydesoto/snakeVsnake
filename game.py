@@ -91,7 +91,7 @@ def game(ticks_per_s=5, snake1_model=None, snake2_model=None):
                 elif grid[row][col] == Square.TOMATO:
                     pygame.draw.rect(screen, RED, (x, y, SQUARE_WIDTH, SQUARE_HEIGHT))
 
-        length_font = pygame.font.SysFont('ubuntusans', 50)
+        length_font = pygame.font.SysFont('ubuntusans', 40)
         text_surface = length_font.render(f'Green Snake: {env.snake1.length}     Blue Snake: {env.snake2.length}', False, (25, 136, 191))
         screen.blit(text_surface, (40, 0))
 
@@ -113,7 +113,7 @@ def game(ticks_per_s=5, snake1_model=None, snake2_model=None):
     else:
         end_text = "It's a Tie!"
 
-    length_font = pygame.font.SysFont('ubuntusans', 75)
+    length_font = pygame.font.SysFont('ubuntusans', 40)
     text_surface = length_font.render(end_text, False, WHITE)
     screen.blit(text_surface, (200, 450))
     pygame.display.update()
