@@ -2,10 +2,11 @@ import torch
 import random
 from collections import deque
 from dqn import DQN, SnakeDQL
-from environment import *
+from environment import SnakeEnvironment
 import os
 import matplotlib.pyplot as plt
-from utils import check_out_bounds, check_collision
+from utils import Direction
+import numpy as np
 
 class Agent:
 
@@ -18,7 +19,7 @@ class Agent:
         self.lr = 1e-3
         self.max_memory = 100_000
         self.memory = deque(maxlen=self.max_memory)
-        self.model = DQN(in_states=1, out_actions=4, device=device) 
+        self.model = DQN(in_channels=1, out_actions=4, device=device) 
         if os.path.isfile(path):
             print(f'Loading DQN from {path}')
             self.model.load_state_dict(torch.load(path))

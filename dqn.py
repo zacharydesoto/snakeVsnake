@@ -1,18 +1,16 @@
-import numpy as np
 import torch
 from torch import nn
-import torch.nn.functional as F
 from collections import deque
 import random
 
 
 class DQN(nn.Module):
-    def __init__(self, in_states, out_actions, device):
+    def __init__(self, in_channels, out_actions, device):
         super().__init__()
         self.device = device
         
         self.conv_block1 = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=10, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(in_channels=in_channels, out_channels=10, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.Conv2d(in_channels=10, out_channels=10, kernel_size=3, stride=1, padding=1),
             nn.ReLU()

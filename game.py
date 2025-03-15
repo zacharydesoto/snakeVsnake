@@ -1,11 +1,8 @@
 import pygame
-from enum import Enum
-from collections import deque
 
-from environment import *
+from environment import SnakeEnvironment
 from utils import *
 from movement import *
-import pickle
 
 def game(ticks_per_s=5, snake1_model=None, snake2_model=None):
     pygame.init()
