@@ -1,6 +1,33 @@
-# snakeRL
+# snakeVsnake
 
 A ECE C147 project centered on Deep-Q Networks (DQNs). 
+
+## How To Play
+
+In `main.py`, define a config for grid width and height. Due to the way snakes and tomatoes positions are initialized and reset, we recommend you stick to (20,20) or larger for width and height. 
+* Example: 
+
+```python
+config = {
+    'GRID_WIDTH': 20,
+    'GRID_HEIGHT': 20
+}
+```
+
+If you have not trained a model (or would like to continue training an existing one), use the method `train` and specify a model name. 
+* Example: `train(config, 'local_vision_model.pt', best_rewards=0, episodes=450)`
+* Loss vs. Episode and Rewards vs. Episode graphs are available under `new_losses.png` and `new_rewards.png`.
+
+If you would like to view a game of a trained model playing against another trained model, use the `ai_vs_ai` method. 
+* Example: `ai_vs_ai('local_vision_model.pt')`
+
+Finally, to test two models against each other and obtain the average length over a specified number of episodes, use the `get_agent_test` method. 
+* Example: `get_agent_test(config, 'local_vision_model.pt')`
+* Include `baseline=True` if you want to test a specified model against the baseline (random) model. 
+* * Example: `get_agent_test(config, 'local_vision_model.pt', baseline=True)`
+
+If you would like to play the game yourself: 
+* Example: `player_vs_ai('local_vision_model.pt')`
 
 ## Introduction
 
