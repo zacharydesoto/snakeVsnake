@@ -1,7 +1,7 @@
 from game import *
 from dqn import *
 from environment import SnakeEnvironment
-from agent import Agent, train
+from agent import Agent, train, test
 
 def main():
     # game()
@@ -12,7 +12,8 @@ def main():
         'GRID_HEIGHT': 20
     }
     # train(config, 'cnn_combined_model.pt', best_rewards=0, episodes=450)
-    ai_vs_ai('cnn_combined_model.pt')
+    # ai_vs_ai('cnn_combined_model.pt')
+    get_agent_test(config, 'cnn_combined_model.pt')
 
 
 def player_vs_ai(path):
@@ -25,5 +26,8 @@ def ai_vs_ai(path, ticks_per_s=30):
     agent2 = Agent(path)
 
     game(ticks_per_s, snake1_model=agent1, snake2_model=agent2)
+
+def get_agent_test(config, path):
+    test(config, path)
 
 main()

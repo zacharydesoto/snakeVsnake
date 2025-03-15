@@ -155,12 +155,13 @@ class SnakeEnvironment:
                 else:
                     val = self.grid[y][x].value
 
-                row.append(val)
+                row.append([val, val, val])
             portion_grid.append(row)
 
         grid_tensor = torch.tensor(portion_grid, dtype=torch.float32)
 
-        grid_tensor = grid_tensor.unsqueeze(0) # (1, 5, 5)
+        # grid_tensor = grid_tensor.unsqueeze(0) # (1, 5, 5)
+        grid_tensor = grid_tensor.permute(2, 0, 1)
         grid_tensor = grid_tensor.unsqueeze(0) # (1, 1, 5, 5)
 
         blind_tensor = self.get_network_state(is_snake1=is_snake1)  
