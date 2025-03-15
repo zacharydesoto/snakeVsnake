@@ -174,12 +174,12 @@ class SnakeEnvironment:
         return combined_tensor
 
     def check_dies(self, direction, is_snake1):
-        if check_perpendicular_directions(self.snake1.head_dir, direction):
-            self.snake1.head_dir = direction
-        if check_perpendicular_directions(self.snake2.head_dir, direction):
-            self.snake2.head_dir = direction
+        snake = self.snake1 if is_snake1 else self.snake2
+        if check_perpendicular_directions(snake.head_dir, direction):
+            head_dir = direction
+        else:
+            head_dir = snake.head_dir
         # Checks if snakes went out of bounds or collided with something
-        _, self.snake1.alive = check_ob_collisions(self.grid, self.snake1.path, self.snake1.head_dir, True, self.config)
-        _, self.snake2.alive = check_ob_collisions(self.grid, self.snake2.path, self.snake2.head_dir, True, self.config)
+        _, snake_alive = check_ob_collisions(self.grid, snake.path, head_dir, True, self.config)
 
-        return self.snake1.alive if is_snake1 else self.snake2.alive
+        return not snake_alive

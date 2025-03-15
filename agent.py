@@ -9,7 +9,8 @@ from utils import check_out_bounds, check_collision
 
 class Agent:
 
-    def __init__(self, path, device=torch.device('cpu')):
+    def __init__(self, path, baseline=False, device=torch.device('cpu')):
+        self.baseline = baseline
         self.n_games = 0
         self.epsilon = 0
         self.discount_rate = 0.9
@@ -44,8 +45,8 @@ class Agent:
         next_state = next_state.squeeze(0)
         self.trainer.train_step(state, action, reward, next_state, done)
 
-    def get_action(self, state, train=True, env=None, get_baseline_action=False):
-        if get_baseline_action:
+    def get_action(self, state, train=True, env=None):
+        if self.baseline:
             possible_actions = []
             for dir in [Direction.LEFT, Direction.UP, Direction.RIGHT, Direction.DOWN]:
                 if not env.check_dies(direction=dir, is_snake1=False):
@@ -55,7 +56,7 @@ class Agent:
                 move = random.choice(possible_actions)
             else:
                 move = 0
-            print(f"Random move {move}")
+            # print(f"Random move {move}")
             return move
         
         # Decay epsilon linearly
@@ -71,7 +72,6 @@ class Agent:
         else:
             move = self.model(state).argmax().item()
 
-        print(f'Actual move {move}')
         return move
 
     def get_state_dict(self):
@@ -153,9 +153,11 @@ def plot_figures(n_games, plot_rewards_1, plot_rewards_2, plot_losses):
     plt.savefig('new_losses.png')
 
 def test(config, path, baseline=False, episodes=100):
-    agent = Agent(path)
-    agent.n_games = 1000
-    agent.model.eval()
+    agent1 = Agent(path, baseline=False)
+    agent2 = Agent(path, baseline=baseline)
+    agent1.n_games = 1000
+    agent1.model.eval()
+    agent2.model.eval()
     env = SnakeEnvironment(config)
 
     snake1_lengths = []
@@ -172,11 +174,11 @@ def test(config, path, baseline=False, episodes=100):
             # print(f'state2 shape {state2.shape}')
 
             # Get agents' actions
-            action1 = agent.get_action(state1)
+            action1 = agent1.get_action(state1)
             # action2 = agent.get_action(state2)
             
             # For baseline (random) model
-            action2 = agent.get_action(state2, env=env, get_baseline_action=True)
+            action2 = agent2.get_action(state2, env=env)
 
             # Perform actions and get new state
             _, _, _, done, truncated = env.step(action1, action2)
@@ -186,7 +188,7 @@ def test(config, path, baseline=False, episodes=100):
                 snake2_lengths.append(env.snake2.length)
 
                 env.reset()
-                agent.n_games += 1
+                agent1.n_games += 1
                 break
     
 
@@ -196,7 +198,7 @@ def test(config, path, baseline=False, episodes=100):
     plt.plot(x_axis, snake2_lengths, marker='o', linestyle='-', label='Snake 2')
     plt.xlabel("Number of Games")
     plt.ylabel("Lengths")
-    plt.title('Local Vision Snake Lengths in Testing')
+    plt.title('Local Vision vs. Baseline Snake Lengths')
     plt.legend()
     plt.savefig('lengths.png')
 
