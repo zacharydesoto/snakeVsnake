@@ -13,7 +13,7 @@ def main():
     }
     # train(config, 'cnn_combined_model.pt', best_rewards=0, episodes=450)
     # ai_vs_ai('cnn_combined_model.pt')
-    get_agent_test(config, 'cnn_combined_model.pt')
+    get_agent_test(config, 'cnn_combined_model.pt', baseline=True)
 
 
 def player_vs_ai(path):
@@ -27,7 +27,7 @@ def ai_vs_ai(path, ticks_per_s=30):
 
     game(ticks_per_s, snake1_model=agent1, snake2_model=agent2)
 
-def get_agent_test(config, path):
-    test(config, path)
+def get_agent_test(config, path, baseline=False):
+    test(config, path, baseline=baseline)
 
 main()

@@ -5,6 +5,7 @@ from dqn import DQN, SnakeDQL
 from environment import *
 import os
 import matplotlib.pyplot as plt
+from utils import check_out_bounds, check_collision
 
 class Agent:
 
@@ -43,7 +44,20 @@ class Agent:
         next_state = next_state.squeeze(0)
         self.trainer.train_step(state, action, reward, next_state, done)
 
-    def get_action(self, state, train=True):
+    def get_action(self, state, train=True, env=None, get_baseline_action=False):
+        if get_baseline_action:
+            possible_actions = []
+            for dir in [Direction.LEFT, Direction.UP, Direction.RIGHT, Direction.DOWN]:
+                if not env.check_dies(direction=dir, is_snake1=False):
+                    possible_actions.append(dir)
+            
+            if possible_actions:
+                move = random.choice(possible_actions)
+            else:
+                move = 0
+            print(f"Random move {move}")
+            return move
+        
         # Decay epsilon linearly
         self.epsilon = max(0, 0.4 - self.n_games / 250)
 
@@ -57,6 +71,7 @@ class Agent:
         else:
             move = self.model(state).argmax().item()
 
+        print(f'Actual move {move}')
         return move
 
     def get_state_dict(self):
@@ -137,7 +152,7 @@ def plot_figures(n_games, plot_rewards_1, plot_rewards_2, plot_losses):
     plt.ylabel("Average Loss")
     plt.savefig('new_losses.png')
 
-def test(config, path, episodes=100):
+def test(config, path, baseline=False, episodes=100):
     agent = Agent(path)
     agent.n_games = 1000
     agent.model.eval()
@@ -158,7 +173,10 @@ def test(config, path, episodes=100):
 
             # Get agents' actions
             action1 = agent.get_action(state1)
-            action2 = agent.get_action(state2)
+            # action2 = agent.get_action(state2)
+            
+            # For baseline (random) model
+            action2 = agent.get_action(state2, env=env, get_baseline_action=True)
 
             # Perform actions and get new state
             _, _, _, done, truncated = env.step(action1, action2)
